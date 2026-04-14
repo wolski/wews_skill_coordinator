@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 SKILLS_DIR := $(HOME)/.claude/skills
+AGENTS_DIR := $(HOME)/.claude/agents
 REPOS_DIR := $(CURDIR)/repos
 CONF := skills.conf
 
@@ -40,16 +41,18 @@ update: ## Pull latest from all repos
 		fi; \
 	done
 
-install: ## Symlink skills from skills.conf into ~/.claude/skills/
-	@mkdir -p $(SKILLS_DIR)
+install: ## Symlink skills and agents from skills.conf
+	@mkdir -p $(SKILLS_DIR) $(AGENTS_DIR)
 	@# Remove existing symlinks that point into our repos dir
-	@for link in $(SKILLS_DIR)/*; do \
-		if [ -L "$$link" ]; then \
-			target=$$(readlink "$$link"); \
-			case "$$target" in \
-				$(REPOS_DIR)/*) rm "$$link" ;; \
-			esac; \
-		fi; \
+	@for dir in $(SKILLS_DIR) $(AGENTS_DIR); do \
+		for link in $$dir/*; do \
+			if [ -L "$$link" ]; then \
+				target=$$(readlink "$$link"); \
+				case "$$target" in \
+					$(REPOS_DIR)/*) rm "$$link" ;; \
+				esac; \
+			fi; \
+		done; \
 	done
 	@# Create symlinks from skills.conf
 	@while IFS= read -r line || [ -n "$$line" ]; do \
@@ -57,9 +60,15 @@ install: ## Symlink skills from skills.conf into ~/.claude/skills/
 		[ -z "$$line" ] && continue; \
 		repo=$$(echo "$$line" | awk '{print $$1}'); \
 		skill_path=$$(echo "$$line" | awk '{print $$2}'); \
+		entry_type=$$(echo "$$line" | awk '{print $$3}'); \
 		skill_name=$$(basename "$$skill_path"); \
 		source="$(REPOS_DIR)/$$repo/$$skill_path"; \
-		target="$(SKILLS_DIR)/$$skill_name"; \
+		if [ "$$entry_type" = "agent" ]; then \
+			dest_dir="$(AGENTS_DIR)"; \
+		else \
+			dest_dir="$(SKILLS_DIR)"; \
+		fi; \
+		target="$$dest_dir/$$skill_name"; \
 		if [ ! -d "$$source" ]; then \
 			echo "  MISSING  $$repo/$$skill_path"; \
 			continue; \
@@ -69,25 +78,45 @@ install: ## Symlink skills from skills.conf into ~/.claude/skills/
 			continue; \
 		fi; \
 		ln -s "$$source" "$$target"; \
-		echo "  linked   $$skill_name -> $$repo/$$skill_path"; \
+		echo "  linked   $$skill_name -> $$repo/$$skill_path ($$dest_dir)"; \
 	done < $(CONF)
 
-clean: ## Remove all managed symlinks from ~/.claude/skills/
-	@for link in $(SKILLS_DIR)/*; do \
-		if [ -L "$$link" ]; then \
-			target=$$(readlink "$$link"); \
-			case "$$target" in \
-				$(REPOS_DIR)/*) \
-					echo "  removed  $$(basename $$link)"; \
-					rm "$$link" ;; \
-			esac; \
-		fi; \
+clean: ## Remove all managed symlinks from ~/.claude/skills/ and ~/.claude/agents/
+	@for dir in $(SKILLS_DIR) $(AGENTS_DIR); do \
+		for link in $$dir/*; do \
+			if [ -L "$$link" ]; then \
+				target=$$(readlink "$$link"); \
+				case "$$target" in \
+					$(REPOS_DIR)/*) \
+						echo "  removed  $$(basename $$link)"; \
+						rm "$$link" ;; \
+				esac; \
+			fi; \
+		done; \
 	done
 
-list: ## Show currently installed skills
+list: ## Show currently installed skills and agents
 	@echo "Installed skills in $(SKILLS_DIR):"
 	@echo ""
 	@for link in $(SKILLS_DIR)/*; do \
+		if [ -L "$$link" ]; then \
+			name=$$(basename "$$link"); \
+			target=$$(readlink "$$link"); \
+			case "$$target" in \
+				$(REPOS_DIR)/*) \
+					rel=$${target#$(REPOS_DIR)/}; \
+					echo "  $$name -> $$rel" ;; \
+				*) \
+					echo "  $$name -> $$target (external)" ;; \
+			esac; \
+		elif [ -d "$$link" ]; then \
+			echo "  $$(basename $$link) (directory, not managed)"; \
+		fi; \
+	done
+	@echo ""
+	@echo "Installed agents in $(AGENTS_DIR):"
+	@echo ""
+	@for link in $(AGENTS_DIR)/*; do \
 		if [ -L "$$link" ]; then \
 			name=$$(basename "$$link"); \
 			target=$$(readlink "$$link"); \

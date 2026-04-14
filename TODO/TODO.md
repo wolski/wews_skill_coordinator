@@ -13,7 +13,7 @@
 ### Completed (2026-04-08)
 - `r-development` — full rewrite: description (3rd person, triggers), namespacing rule, new sections (ggplot2, purrr, stringr, reshaping, IO), no-dontrun rule, scope boundary with r-package-development
 - `python-style-guide` — description fix, removed ALL CAPS, imperative style
-- `python-style-guide-compact` — description fix, scope boundary with full version
+- `python-style-guide-compact` — removed (redundant subset of full version)
 - `mixed-r-python-pipeline` — description fix, removed second-person, framed local paths
 
 ### Not yet reviewed (need description, writing style, progressive disclosure checks)
