@@ -1,2 +1,3 @@
 # Cloned upstream repos (managed by Makefile, not tracked)
-repos/
+repos/*
+!repos/claude-kaiser-skills/

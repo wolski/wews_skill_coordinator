@@ -4,7 +4,16 @@ AGENTS_DIR := $(HOME)/.claude/agents
 REPOS_DIR := $(CURDIR)/repos
 CONF := skills.conf
 
-.PHONY: help clone update install clean list status
+# Plugins managed via `claude plugin install` (not symlinked)
+PLUGINS := \
+	code-simplifier \
+	claude-md-management \
+	code-review \
+	hookify
+
+MARKETPLACE := claude-plugins-official
+
+.PHONY: help clone update install clean list status plugins plugins-remove plugins-list
 
 help: ## Show this help
 	@echo "Claude Code Skills Coordinator"
@@ -14,7 +23,7 @@ help: ## Show this help
 	@echo ""
 	@echo "Targets:"
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*##"}; {printf "  %-12s %s\n", $$1, $$2}'
+		awk 'BEGIN {FS = ":.*##"}; {printf "  %-16s %s\n", $$1, $$2}'
 
 clone: ## Clone all upstream repos into repos/ (skip if exists)
 	@mkdir -p $(REPOS_DIR)
@@ -69,7 +78,7 @@ install: ## Symlink skills and agents from skills.conf
 			dest_dir="$(SKILLS_DIR)"; \
 		fi; \
 		target="$$dest_dir/$$skill_name"; \
-		if [ ! -d "$$source" ]; then \
+		if [ ! -e "$$source" ]; then \
 			echo "  MISSING  $$repo/$$skill_path"; \
 			continue; \
 		fi; \
@@ -131,6 +140,21 @@ list: ## Show currently installed skills and agents
 			echo "  $$(basename $$link) (directory, not managed)"; \
 		fi; \
 	done
+
+plugins: ## Install Claude Code plugins from marketplace
+	@for p in $(PLUGINS); do \
+		echo "  installing $$p"; \
+		claude plugin install "$$p@$(MARKETPLACE)" 2>&1 | sed 's/^/    /'; \
+	done
+
+plugins-remove: ## Uninstall all managed plugins
+	@for p in $(PLUGINS); do \
+		echo "  removing $$p"; \
+		claude plugin uninstall "$$p" 2>&1 | sed 's/^/    /'; \
+	done
+
+plugins-list: ## List installed plugins
+	@claude plugin list
 
 status: ## Show git status of each repo
 	@for repo in $(REPOS_DIR)/*/; do \
