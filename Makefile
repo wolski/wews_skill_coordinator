@@ -1,19 +1,7 @@
 SHELL := /bin/bash
-SKILLS_DIR := $(HOME)/.claude/skills
-AGENTS_DIR := $(HOME)/.claude/agents
-REPOS_DIR := $(CURDIR)/repos
-CONF := skills.conf
+PY := uv run --with cyclopts python skill_coordinator.py
 
-# Plugins managed via `claude plugin install` (not symlinked)
-PLUGINS := \
-	code-simplifier \
-	claude-md-management \
-	code-review \
-	hookify
-
-MARKETPLACE := claude-plugins-official
-
-.PHONY: help clone update install clean list status plugins plugins-remove plugins-list
+.PHONY: help clone update install clean list status audit plugins plugins-remove plugins-list
 
 help: ## Show this help
 	@echo "Claude Code Skills Coordinator"
@@ -21,147 +9,34 @@ help: ## Show this help
 	@echo "Quick start:  make clone && make install"
 	@echo "Update:       make update && make install"
 	@echo ""
-	@echo "Targets:"
-	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*##"}; {printf "  %-16s %s\n", $$1, $$2}'
+	@$(PY) --help
 
-clone: ## Clone all upstream repos into repos/ (skip if exists)
-	@mkdir -p $(REPOS_DIR)
-	@[ -d $(REPOS_DIR)/claude-kaiser-skills ] \
-		&& echo "  exists   claude-kaiser-skills" \
-		|| (echo "  cloning  claude-kaiser-skills" && git clone --depth 1 https://github.com/wolski/claude-kaiser-skills.git $(REPOS_DIR)/claude-kaiser-skills)
-	@[ -d $(REPOS_DIR)/posit-dev-skills ] \
-		&& echo "  exists   posit-dev-skills" \
-		|| (echo "  cloning  posit-dev-skills" && git clone --depth 1 https://github.com/posit-dev/skills.git $(REPOS_DIR)/posit-dev-skills)
-	@[ -d $(REPOS_DIR)/marimo-team-skills ] \
-		&& echo "  exists   marimo-team-skills" \
-		|| (echo "  cloning  marimo-team-skills" && git clone --depth 1 https://github.com/marimo-team/skills.git $(REPOS_DIR)/marimo-team-skills)
-	@[ -d $(REPOS_DIR)/anthropics-skills ] \
-		&& echo "  exists   anthropics-skills" \
-		|| (echo "  cloning  anthropics-skills" && git clone --depth 1 https://github.com/anthropics/skills.git $(REPOS_DIR)/anthropics-skills)
+clone: ## Clone all upstream repos
+	@$(PY) clone
 
 update: ## Pull latest from all repos
-	@for repo in $(REPOS_DIR)/*/; do \
-		name=$$(basename "$$repo"); \
-		if [ -d "$$repo/.git" ]; then \
-			echo "  pulling  $$name"; \
-			git -C "$$repo" pull --ff-only 2>/dev/null || \
-				echo "  WARNING: pull failed for $$name (check manually)"; \
-		fi; \
-	done
+	@$(PY) update
 
 install: ## Symlink skills and agents from skills.conf
-	@mkdir -p $(SKILLS_DIR) $(AGENTS_DIR)
-	@# Remove existing symlinks that point into our repos dir
-	@for dir in $(SKILLS_DIR) $(AGENTS_DIR); do \
-		for link in $$dir/*; do \
-			if [ -L "$$link" ]; then \
-				target=$$(readlink "$$link"); \
-				case "$$target" in \
-					$(REPOS_DIR)/*) rm "$$link" ;; \
-				esac; \
-			fi; \
-		done; \
-	done
-	@# Create symlinks from skills.conf
-	@while IFS= read -r line || [ -n "$$line" ]; do \
-		line=$$(echo "$$line" | sed 's/#.*//; s/^[[:space:]]*//; s/[[:space:]]*$$//'); \
-		[ -z "$$line" ] && continue; \
-		repo=$$(echo "$$line" | awk '{print $$1}'); \
-		skill_path=$$(echo "$$line" | awk '{print $$2}'); \
-		entry_type=$$(echo "$$line" | awk '{print $$3}'); \
-		skill_name=$$(basename "$$skill_path"); \
-		source="$(REPOS_DIR)/$$repo/$$skill_path"; \
-		if [ "$$entry_type" = "agent" ]; then \
-			dest_dir="$(AGENTS_DIR)"; \
-		else \
-			dest_dir="$(SKILLS_DIR)"; \
-		fi; \
-		target="$$dest_dir/$$skill_name"; \
-		if [ ! -e "$$source" ]; then \
-			echo "  MISSING  $$repo/$$skill_path"; \
-			continue; \
-		fi; \
-		if [ -e "$$target" ]; then \
-			echo "  CONFLICT $$skill_name (already exists, skipping)"; \
-			continue; \
-		fi; \
-		ln -s "$$source" "$$target"; \
-		echo "  linked   $$skill_name -> $$repo/$$skill_path ($$dest_dir)"; \
-	done < $(CONF)
+	@$(PY) install
 
-clean: ## Remove all managed symlinks from ~/.claude/skills/ and ~/.claude/agents/
-	@for dir in $(SKILLS_DIR) $(AGENTS_DIR); do \
-		for link in $$dir/*; do \
-			if [ -L "$$link" ]; then \
-				target=$$(readlink "$$link"); \
-				case "$$target" in \
-					$(REPOS_DIR)/*) \
-						echo "  removed  $$(basename $$link)"; \
-						rm "$$link" ;; \
-				esac; \
-			fi; \
-		done; \
-	done
+clean: ## Remove all managed symlinks
+	@$(PY) clean
 
-list: ## Show currently installed skills and agents
-	@echo "Installed skills in $(SKILLS_DIR):"
-	@echo ""
-	@for link in $(SKILLS_DIR)/*; do \
-		if [ -L "$$link" ]; then \
-			name=$$(basename "$$link"); \
-			target=$$(readlink "$$link"); \
-			case "$$target" in \
-				$(REPOS_DIR)/*) \
-					rel=$${target#$(REPOS_DIR)/}; \
-					echo "  $$name -> $$rel" ;; \
-				*) \
-					echo "  $$name -> $$target (external)" ;; \
-			esac; \
-		elif [ -d "$$link" ]; then \
-			echo "  $$(basename $$link) (directory, not managed)"; \
-		fi; \
-	done
-	@echo ""
-	@echo "Installed agents in $(AGENTS_DIR):"
-	@echo ""
-	@for link in $(AGENTS_DIR)/*; do \
-		if [ -L "$$link" ]; then \
-			name=$$(basename "$$link"); \
-			target=$$(readlink "$$link"); \
-			case "$$target" in \
-				$(REPOS_DIR)/*) \
-					rel=$${target#$(REPOS_DIR)/}; \
-					echo "  $$name -> $$rel" ;; \
-				*) \
-					echo "  $$name -> $$target (external)" ;; \
-			esac; \
-		elif [ -d "$$link" ]; then \
-			echo "  $$(basename $$link) (directory, not managed)"; \
-		fi; \
-	done
-
-plugins: ## Install Claude Code plugins from marketplace
-	@for p in $(PLUGINS); do \
-		echo "  installing $$p"; \
-		claude plugin install "$$p@$(MARKETPLACE)" 2>&1 | sed 's/^/    /'; \
-	done
-
-plugins-remove: ## Uninstall all managed plugins
-	@for p in $(PLUGINS); do \
-		echo "  removing $$p"; \
-		claude plugin uninstall "$$p" 2>&1 | sed 's/^/    /'; \
-	done
-
-plugins-list: ## List installed plugins
-	@claude plugin list
+list: ## Show installed skills and agents
+	@$(PY) list
 
 status: ## Show git status of each repo
-	@for repo in $(REPOS_DIR)/*/; do \
-		name=$$(basename "$$repo"); \
-		if [ -d "$$repo/.git" ]; then \
-			echo "=== $$name ==="; \
-			git -C "$$repo" log --oneline -1; \
-			echo ""; \
-		fi; \
-	done
+	@$(PY) status
+
+audit: ## Report skills with upstream drift
+	@$(PY) audit
+
+plugins: ## Install plugins from marketplace
+	@$(PY) plugins install-plugins
+
+plugins-remove: ## Uninstall all managed plugins
+	@$(PY) plugins remove
+
+plugins-list: ## List installed plugins
+	@$(PY) plugins list
