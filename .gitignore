@@ -1,3 +1,13 @@
 # Cloned upstream repos (managed by Makefile, not tracked)
 repos/*
 !repos/claude-kaiser-skills/
+
+# Python
+__pycache__/
+.pytest_cache/
+
+# Claude Code / KairosChain local state
+.claude/
+.kairos/
+.mcp.json
+log/
