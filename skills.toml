@@ -1,0 +1,80 @@
+# Claude Code Skills Coordinator — configuration
+# All repos, plugins, skills, and agents in one file.
+
+[repos]
+claude-kaiser-skills = "https://github.com/wolski/claude-kaiser-skills.git"
+posit-dev-skills     = "https://github.com/posit-dev/skills.git"
+marimo-team-skills   = "https://github.com/marimo-team/skills.git"
+anthropics-skills    = "https://github.com/anthropics/skills.git"
+fgcz-skills          = "https://github.com/fgcz/skills.git"
+
+[plugins.claude-plugins-official]
+names = [
+    "code-simplifier",
+    "claude-md-management",
+    "code-review",
+    "hookify",
+]
+
+# ─── Skills per repo ───────────────────────────────────────────────
+# Each [skills.<repo>] must match a key in [repos].
+# paths  = skill directories symlinked to ~/.claude/skills/
+# agents = agent .md files symlinked to ~/.claude/agents/
+
+[skills.claude-kaiser-skills]
+paths = [
+    "r-development",
+    "python-style-guide",
+    "mixed-r-python-pipeline",
+    "snakemake-compact",
+    "shell-scripting",
+    "scverse",
+    "scverse-compact",
+    "plotly",
+    "plotly-compact",
+    "pixi",
+    "general-agentic",
+    "phosphoproteomics-ptm-analysis",
+    "prolfqua-adding-models",
+    "bfabricpy",
+    "bookdown",
+    "school-study-materials",
+    "multiagent-review",
+]
+agents = [
+    "agents/r-development.md",
+    "agents/dry-audit.md",
+    "agents/dead-code-audit.md",
+]
+
+[skills.posit-dev-skills]
+paths = [
+    "r-lib/r-package-development",
+    "r-lib/testing-r-packages",
+    "r-lib/r-cli-app",
+    "r-lib/cli",
+    "r-lib/lifecycle",
+]
+
+[skills.marimo-team-skills]
+paths = [
+    "skills/marimo-notebook",
+    "skills/marimo-batch",
+    "skills/streamlit-to-marimo",
+]
+
+[skills.anthropics-skills]
+paths = [
+    "skills/skill-creator",
+]
+
+[skills.fgcz-skills]
+paths = [
+    "fgcz-infrastructure/skills/fgcz-custom-analysis-register",
+    "bfabric-lims/skills/bfabric-query",
+    "bfabric-lims/skills/bfabric-tools",
+    "fgcz-infrastructure/skills/sushi-framework",
+    "fgcz-infrastructure/skills/shinyproxy-deployment",
+    "fgcz-infrastructure/skills/fgcz-gitlab",
+    "fgcz-infrastructure/skills/fgcz-modules",
+]

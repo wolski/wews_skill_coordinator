@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """Claude Code Skills Coordinator — manage skills, agents, and plugins."""
 
+from __future__ import annotations
+
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore[no-redef]
+
 import cyclopts
+from pydantic import BaseModel, model_validator
 
 app = cyclopts.App(
     name="skill-coordinator",
@@ -14,28 +22,48 @@ app = cyclopts.App(
 
 ROOT = Path(__file__).resolve().parent
 REPOS_DIR = ROOT / "repos"
-CONF = ROOT / "skills.conf"
+CONF_TOML = ROOT / "skills.toml"
 
 SKILLS_DIR = Path.home() / ".claude" / "skills"
 AGENTS_DIR = Path.home() / ".claude" / "agents"
 CODEX_SKILLS_DIR = Path.home() / ".codex" / "skills"
 KAIROS_KNOW_DIR = ROOT / ".kairos" / "knowledge"
 
-REPOS: dict[str, str] = {
-    "claude-kaiser-skills": "https://github.com/wolski/claude-kaiser-skills.git",
-    "posit-dev-skills": "https://github.com/posit-dev/skills.git",
-    "marimo-team-skills": "https://github.com/marimo-team/skills.git",
-    "anthropics-skills": "https://github.com/anthropics/skills.git",
-    "fgcz-skills": "https://github.com/fgcz/skills.git",
-}
+DRY_RUN = False
 
-PLUGINS: list[str] = [
-    "code-simplifier",
-    "claude-md-management",
-    "code-review",
-    "hookify",
-]
-MARKETPLACE = "claude-plugins-official"
+
+# ── Config models ────────────────────────────────────────────────────
+
+
+class PluginSource(BaseModel):
+    names: list[str]
+
+
+class RepoSkills(BaseModel):
+    paths: list[str] = []
+    agents: list[str] = []
+
+
+class SkillsConfig(BaseModel):
+    repos: dict[str, str]
+    plugins: dict[str, PluginSource]
+    skills: dict[str, RepoSkills]
+
+    @model_validator(mode="after")
+    def check_repo_keys(self) -> SkillsConfig:
+        unknown = set(self.skills) - set(self.repos)
+        if unknown:
+            raise ValueError(f"skills sections reference unknown repos: {unknown}")
+        return self
+
+
+def load_config() -> SkillsConfig:
+    with open(CONF_TOML, "rb") as f:
+        raw = tomllib.load(f)
+    return SkillsConfig(**raw)
+
+
+# ── Shared types ─────────────────────────────────────────────────────
 
 
 @dataclass
@@ -52,18 +80,17 @@ class ConfEntry:
 
 
 def parse_conf() -> list[ConfEntry]:
+    cfg = load_config()
     entries: list[ConfEntry] = []
-    for raw in CONF.read_text().splitlines():
-        line = raw.split("#", 1)[0].strip()
-        if not line:
-            continue
-        parts = line.split()
-        repo = parts[0]
-        skill_path = parts[1]
-        entry_type = parts[2] if len(parts) > 2 else "skill"
-        name = Path(skill_path).name
-        source = REPOS_DIR / repo / skill_path
-        entries.append(ConfEntry(repo, skill_path, entry_type, name, source))
+    for repo_name, repo_skills in cfg.skills.items():
+        for skill_path in repo_skills.paths:
+            name = Path(skill_path).name
+            source = REPOS_DIR / repo_name / skill_path
+            entries.append(ConfEntry(repo_name, skill_path, "skill", name, source))
+        for agent_path in repo_skills.agents:
+            name = Path(agent_path).name
+            source = REPOS_DIR / repo_name / agent_path
+            entries.append(ConfEntry(repo_name, agent_path, "agent", name, source))
     return entries
 
 
@@ -76,8 +103,10 @@ def _remove_managed_symlinks(*dirs: Path) -> None:
                 target = link.resolve()
                 try:
                     target.relative_to(REPOS_DIR)
-                    print(f"  removed  {link.name}")
-                    link.unlink()
+                    tag = "would remove" if DRY_RUN else "removed"
+                    print(f"  {tag:14s} {link.name}")
+                    if not DRY_RUN:
+                        link.unlink()
                 except ValueError:
                     pass
 
@@ -113,18 +142,23 @@ def _list_dir(label: str, d: Path) -> None:
 
 
 @app.command
-def clone() -> None:
+def clone(*, dry_run: bool = False) -> None:
     """Clone all upstream repos into repos/ (skip if exists)."""
-    REPOS_DIR.mkdir(parents=True, exist_ok=True)
-    for name, url in REPOS.items():
+    global DRY_RUN
+    DRY_RUN = dry_run
+    if not DRY_RUN:
+        REPOS_DIR.mkdir(parents=True, exist_ok=True)
+    for name, url in load_config().repos.items():
         dest = REPOS_DIR / name
         if dest.exists():
             print(f"  exists   {name}")
         else:
-            print(f"  cloning  {name}")
-            subprocess.run(
-                ["git", "clone", "--depth", "1", url, str(dest)], check=True
-            )
+            tag = "would clone" if DRY_RUN else "cloning"
+            print(f"  {tag:14s} {name}  ({url})")
+            if not DRY_RUN:
+                subprocess.run(
+                    ["git", "clone", "--depth", "1", url, str(dest)], check=True
+                )
 
 
 @app.command
@@ -144,10 +178,13 @@ def update() -> None:
 
 
 @app.command
-def install() -> None:
-    """Symlink skills and agents from skills.conf."""
-    for d in (SKILLS_DIR, AGENTS_DIR, CODEX_SKILLS_DIR):
-        d.mkdir(parents=True, exist_ok=True)
+def install(*, dry_run: bool = False) -> None:
+    """Symlink skills and agents from skills.toml."""
+    global DRY_RUN
+    DRY_RUN = dry_run
+    if not DRY_RUN:
+        for d in (SKILLS_DIR, AGENTS_DIR, CODEX_SKILLS_DIR):
+            d.mkdir(parents=True, exist_ok=True)
 
     _remove_managed_symlinks(SKILLS_DIR, AGENTS_DIR, CODEX_SKILLS_DIR)
 
@@ -159,25 +196,30 @@ def install() -> None:
         dest_dir = AGENTS_DIR if entry.is_agent else SKILLS_DIR
         target = dest_dir / entry.name
 
-        if target.exists():
+        if not DRY_RUN and target.exists():
             print(f"  CONFLICT {entry.name} (already exists, skipping)")
             continue
 
-        target.symlink_to(entry.source)
-        print(f"  linked   {entry.name} -> {entry.repo}/{entry.skill_path} ({dest_dir})")
+        tag = "would link" if DRY_RUN else "linked"
+        print(f"  {tag:14s} {entry.name} -> {entry.repo}/{entry.skill_path} ({dest_dir})")
+        if not DRY_RUN:
+            target.symlink_to(entry.source)
 
         if not entry.is_agent:
             codex_target = CODEX_SKILLS_DIR / entry.name
-            if codex_target.exists():
+            if not DRY_RUN and codex_target.exists():
                 print(f"  CONFLICT {entry.name} (codex, already exists, skipping)")
             else:
-                codex_target.symlink_to(entry.source)
-                print(f"  linked   {entry.name} -> {entry.repo}/{entry.skill_path} ({CODEX_SKILLS_DIR})")
+                print(f"  {tag:14s} {entry.name} -> {entry.repo}/{entry.skill_path} ({CODEX_SKILLS_DIR})")
+                if not DRY_RUN:
+                    codex_target.symlink_to(entry.source)
 
 
 @app.command
-def clean() -> None:
+def clean(*, dry_run: bool = False) -> None:
     """Remove all managed symlinks."""
+    global DRY_RUN
+    DRY_RUN = dry_run
     _remove_managed_symlinks(SKILLS_DIR, AGENTS_DIR, CODEX_SKILLS_DIR)
 
 
@@ -254,31 +296,39 @@ app.command(plugins_app)
 
 
 @plugins_app.command
-def install_plugins() -> None:
+def install_plugins(*, dry_run: bool = False) -> None:
     """Install all managed plugins from marketplace."""
-    for p in PLUGINS:
-        print(f"  installing {p}")
-        result = subprocess.run(
-            ["claude", "plugin", "install", f"{p}@{MARKETPLACE}"],
-            capture_output=True,
-            text=True,
-        )
-        for line in (result.stdout + result.stderr).splitlines():
-            print(f"    {line}")
+    for marketplace, source in load_config().plugins.items():
+        for p in source.names:
+            if dry_run:
+                print(f"  would install {p} ({marketplace})")
+            else:
+                print(f"  installing {p} ({marketplace})")
+                result = subprocess.run(
+                    ["claude", "plugin", "install", f"{p}@{marketplace}"],
+                    capture_output=True,
+                    text=True,
+                )
+                for line in (result.stdout + result.stderr).splitlines():
+                    print(f"    {line}")
 
 
 @plugins_app.command
-def remove() -> None:
+def remove(*, dry_run: bool = False) -> None:
     """Uninstall all managed plugins."""
-    for p in PLUGINS:
-        print(f"  removing {p}")
-        result = subprocess.run(
-            ["claude", "plugin", "uninstall", p],
-            capture_output=True,
-            text=True,
-        )
-        for line in (result.stdout + result.stderr).splitlines():
-            print(f"    {line}")
+    for _marketplace, source in load_config().plugins.items():
+        for p in source.names:
+            if dry_run:
+                print(f"  would remove {p}")
+            else:
+                print(f"  removing {p}")
+                result = subprocess.run(
+                    ["claude", "plugin", "uninstall", p],
+                    capture_output=True,
+                    text=True,
+                )
+                for line in (result.stdout + result.stderr).splitlines():
+                    print(f"    {line}")
 
 
 @plugins_app.command(name="list")

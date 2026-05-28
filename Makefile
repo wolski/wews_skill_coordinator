@@ -1,7 +1,7 @@
 SHELL := /bin/bash
-PY := uv run --with cyclopts python skill_coordinator.py
+PY := uv run --with cyclopts --with pydantic --with tomli python skill_coordinator.py
 
-.PHONY: help clone update install clean list status audit plugins plugins-remove plugins-list
+.PHONY: help clone update install clean list status audit plugins plugins-remove plugins-list dry-run test
 
 help: ## Show this help
 	@echo "Claude Code Skills Coordinator"
@@ -17,7 +17,7 @@ clone: ## Clone all upstream repos
 update: ## Pull latest from all repos
 	@$(PY) update
 
-install: ## Symlink skills and agents from skills.conf
+install: ## Symlink skills and agents from skills.toml
 	@$(PY) install
 
 clean: ## Remove all managed symlinks
@@ -40,3 +40,9 @@ plugins-remove: ## Uninstall all managed plugins
 
 plugins-list: ## List installed plugins
 	@$(PY) plugins list
+
+dry-run: ## Preview install without making changes
+	@$(PY) install --dry-run
+
+test: ## Run test suite
+	@uv run --with cyclopts --with pydantic --with tomli --with pytest python -m pytest test_skill_coordinator.py -v
