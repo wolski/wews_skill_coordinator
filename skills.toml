@@ -35,6 +35,7 @@ paths = [
     "pixi",
     "general-agentic",
     "phosphoproteomics-ptm-analysis",
+    "prolfquapp-dea",
     "prolfqua-adding-models",
     "bfabricpy",
     "bookdown",

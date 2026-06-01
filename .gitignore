@@ -1,6 +1,5 @@
 # Cloned upstream repos (managed by Makefile, not tracked)
 repos/*
-!repos/claude-kaiser-skills/
 
 # Python
 __pycache__/
