@@ -6,7 +6,10 @@ __pycache__/
 .pytest_cache/
 
 # Claude Code / KairosChain local state
+.agents/
+AGENTS.md
 .claude/
+.codex/
 .kairos/
 .mcp.json
 log/
