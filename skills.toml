@@ -7,6 +7,7 @@ posit-dev-skills     = "https://github.com/posit-dev/skills.git"
 marimo-team-skills   = "https://github.com/marimo-team/skills.git"
 anthropics-skills    = "https://github.com/anthropics/skills.git"
 fgcz-skills          = "https://github.com/fgcz/skills.git"
+google-deepmind-science-skills = "https://github.com/google-deepmind/science-skills.git"
 
 [plugins.claude-plugins-official]
 names = [
@@ -75,7 +76,28 @@ paths = [
     "bfabric-lims/skills/bfabric-query",
     "bfabric-lims/skills/bfabric-tools",
     "fgcz-infrastructure/skills/sushi-framework",
+    "fgcz-infrastructure/skills/fgcz-sushi-app-dev",
     "fgcz-infrastructure/skills/shinyproxy-deployment",
     "fgcz-infrastructure/skills/fgcz-gitlab",
     "fgcz-infrastructure/skills/fgcz-modules",
+]
+
+[skills.google-deepmind-science-skills]
+paths = [
+    "skills/uv",
+    "skills/scienceskillscommon",
+    "skills/uniprot_database",
+    "skills/pubmed_database",
+    "skills/literature_search_europepmc",
+    "skills/literature_search_openalex",
+    "skills/ensembl_database",
+    "skills/ncbi_sequence_fetch",
+    "skills/pdb_database",
+    "skills/alphafold_database_fetch_and_analyze",
+    "skills/protein_sequence_similarity_search",
+    "skills/protein_sequence_msa",
+    "skills/string_database",
+    "skills/reactome_database",
+    "skills/human_protein_atlas_database",
+    "skills/gtex_database",
 ]
