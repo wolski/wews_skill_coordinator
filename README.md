@@ -42,6 +42,7 @@ agents = ["agents/dry-audit.md"]
 | `marimo-team-skills` | [marimo-team/skills](https://github.com/marimo-team/skills) | Marimo notebook authoring, batch, migration |
 | `anthropics-skills` | [anthropics/skills](https://github.com/anthropics/skills) | Skill creator workbench |
 | `fgcz-skills` | [fgcz/skills](https://github.com/fgcz/skills) | FGCZ infrastructure, B-Fabric, bioinformatics |
+| `agent-rules-skill` | [netresearch/agent-rules-skill](https://github.com/netresearch/agent-rules-skill) | AGENTS.md generation and validation |
 
 ## Plugins
 
