@@ -39,11 +39,15 @@ paths = [
     "phosphoproteomics-ptm-analysis",
     "prolfquapp-dea",
     "prolfqua-adding-models",
+    "apb-toml-level-design",
     "bfabricpy",
     "bookdown",
     "school-study-materials",
-    "multiagent-review",
+    "review/multiagent-review",
+    "review/verify-review-findings",
+    "review/software-manuscript-review",
     "marimo-background-jobs",
+    "advanced-r-engineering"
 ]
 agents = [
     "agents/r-development.md",
@@ -84,6 +88,10 @@ paths = [
 
 [skills.fgcz-skills]
 paths = [
+    "meta-skills/skills/fgcz-context",
+    "meta-skills/skills/constitution",
+    "meta-skills/skills/skill-contribution",
+    "communication/skills/interview-to-spec",
     "fgcz-infrastructure/skills/fgcz-custom-analysis-register",
     "bfabric-lims/skills/bfabric-query",
     "bfabric-lims/skills/bfabric-tools",
@@ -98,7 +106,6 @@ paths = [
 [skills.google-deepmind-science-skills]
 paths = [
     "skills/uv",
-    "skills/scienceskillscommon",
     "skills/uniprot_database",
     "skills/pubmed_database",
     "skills/literature_search_europepmc",
