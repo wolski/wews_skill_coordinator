@@ -27,6 +27,8 @@ names = [
 paths = [
     "r-development",
     "python-style-guide",
+    "polymorphism-over-discrimination",
+    "design-principles",
     "mixed-r-python-pipeline",
     "snakemake-compact",
     "shell-scripting",
