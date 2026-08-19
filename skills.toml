@@ -93,16 +93,21 @@ paths = [
     "meta-skills/skills/fgcz-context",
     "meta-skills/skills/constitution",
     "meta-skills/skills/skill-contribution",
+    "meta-skills/skills/verification-loops",
+    "meta-skills/skills/create-pull-request",
+    "meta-skills/skills/lessons-compounder",
     "communication/skills/interview-to-spec",
-    "fgcz-infrastructure/skills/fgcz-custom-analysis-register",
     "bfabric-lims/skills/bfabric-query",
     "bfabric-lims/skills/bfabric-tools",
-    "fgcz-infrastructure/skills/sushi-framework",
-    "fgcz-infrastructure/skills/fgcz-sushi-app-dev",
-    "fgcz-infrastructure/skills/ezpyz-app-dev",
-    "fgcz-infrastructure/skills/shinyproxy-deployment",
+    #"fgcz-infrastructure/skills/fgcz-custom-analysis-register",
+    #"fgcz-infrastructure/skills/sushi-framework",
+    #"fgcz-infrastructure/skills/fgcz-sushi-app-dev",
+    #"fgcz-infrastructure/skills/ezpyz-app-dev",
+    #"fgcz-infrastructure/skills/shinyproxy-deployment",
     "fgcz-infrastructure/skills/fgcz-gitlab",
     "fgcz-infrastructure/skills/fgcz-modules",
+    "proteomics-data-analysis/skills/fix-prolfqua-dea-app",
+    "proteomics-data-analysis/skills/fix-ptm-pipeline"
 ]
 
 [skills.google-deepmind-science-skills]
