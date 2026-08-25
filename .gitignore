@@ -1,4 +1,4 @@
-# Historical source checkout retained only until the approved migration cutover.
+# Local reference checkouts are not coordinator-owned source.
 repos/*
 
 # Python
