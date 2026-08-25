@@ -1,32 +1,37 @@
 SHELL := /bin/bash
 PY := uv run --with cyclopts --with pydantic --with tomli python skill_coordinator.py
+PROFILE ?= full
 
-.PHONY: help clone update install clean list status audit plugins plugins-remove plugins-list dry-run test
+.PHONY: help update install switch profiles clean list status audit plugins plugins-remove plugins-list dry-run test
 
 help: ## Show this help
 	@echo "Claude Code Skills Coordinator"
 	@echo ""
-	@echo "Quick start:  make clone && make install"
-	@echo "Update:       make update && make install"
+	@echo "Quick start:  make install"
+	@echo "Update:       make update"
+	@echo "Switch:       make switch PROFILE=python-design"
 	@echo ""
 	@$(PY) --help
 
-clone: ## Clone all upstream repos
-	@$(PY) clone
-
-update: ## Pull latest from all repos
+update: ## Update installed npx skills and standalone agents
 	@$(PY) update
 
-install: ## Symlink skills and agents from skills.toml
-	@$(PY) install
+install: ## Install PROFILE directly through npx skills
+	@$(PY) install --profile "$(PROFILE)"
 
-clean: ## Remove all managed symlinks
+switch: ## Switch the direct npx installation to PROFILE
+	@$(PY) switch --profile "$(PROFILE)"
+
+profiles: ## List configured skill profiles
+	@$(PY) profiles
+
+clean: ## Remove configured npx skills and standalone agents
 	@$(PY) clean
 
-list: ## Show installed skills and agents
+list: ## Show npx-installed skills, agents, and matching profile
 	@$(PY) list
 
-status: ## Show git status of each repo
+status: ## Show git status of standalone agent sources
 	@$(PY) status
 
 audit: ## Report skills with upstream drift
@@ -41,8 +46,8 @@ plugins-remove: ## Uninstall all managed plugins
 plugins-list: ## List installed plugins
 	@$(PY) plugins list
 
-dry-run: ## Preview install without making changes
-	@$(PY) install --dry-run
+dry-run: ## Preview a profile switch without making changes
+	@$(PY) switch --profile "$(PROFILE)" --dry-run
 
 test: ## Run test suite
 	@uv run --with cyclopts --with pydantic --with tomli --with pytest python -m pytest test_skill_coordinator.py -v

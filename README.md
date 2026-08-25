@@ -1,82 +1,101 @@
-# Claude Code Skills Coordinator
+# Skills Coordinator
 
-Manages Claude Code skills, agents, and plugins from multiple upstream repos. Skills are cloned into `repos/` (gitignored) and symlinked into `~/.claude/skills/`, agents into `~/.claude/agents/`, and skills are also mirrored to `~/.codex/skills/`.
+Manages switchable Claude Code and Codex skill profiles declared in `skills.toml`.
+Every skill is installed directly from its GitHub repository with the pinned
+[`skills`](https://github.com/vercel-labs/skills) npx CLI. There is no coordinator
+skill cache and no coordinator-owned skill symlink layer.
+
+Standalone Claude Code agent definitions remain Git-backed because `npx skills`
+does not manage them. Claude plugins remain delegated to Claude's plugin manager.
 
 ## Quick start
 
 ```bash
-make clone    # Clone all upstream repos
-make install  # Symlink skills and agents
-make plugins  # Install Claude Code plugins
+make install                         # install the full profile
+make profiles                        # show available profiles
+make switch PROFILE=python-design    # activate a smaller profile
+make update                          # update npx skills and agent definitions
 ```
 
-## Updating
+A switch installs every selected package first. Only after all installs succeed
+does it remove configured skills outside the selected profile. Skills not declared
+in `skills.toml` are left alone.
 
-```bash
-make update   # git pull all repos
-make install  # Re-create symlinks (picks up new skills)
-```
+## Configuration
 
-## Managing skills
-
-Edit `skills.toml` to add or remove entries, then re-run `make install`.
+Profiles are the authoritative skill inventory. Each entry combines its GitHub
+package and exact npx skill name as `owner/repository@skill`.
 
 ```toml
-[repos]
-posit-dev-skills = "https://github.com/posit-dev/skills.git"
+[package_options."wolski/claude-kaiser-skills"]
+full_depth = true
 
-[skills.posit-dev-skills]
-paths = ["r-lib/testing-r-packages"]
+[profiles.python-design]
+description = "Wolski's Python style and bounded design guidance, plus public Clean Architecture."
+skills = [
+    "wolski/claude-kaiser-skills@python-style-guide",
+    "wolski/claude-kaiser-skills@design-principles",
+    "wolski/claude-kaiser-skills@polymorphism-over-discrimination",
+    "pproenca/dot-skills@clean-architecture",
+]
+agents = []
 
-[skills.claude-kaiser-skills]
-paths = ["r-development", "python-style-guide"]
+[profiles.python-design-public]
+description = "Public Python design-pattern and Clean Architecture guidance, without Wolski skills."
+skills = [
+    "wshobson/agents@python-design-patterns",
+    "pproenca/dot-skills@clean-architecture",
+]
+agents = []
+
+[profiles.python]
+description = "Broad Python engineering toolkit."
+includes = ["python-design", "marimo"]
+skills = ["google-deepmind/science-skills@uv"]
+
+[profiles.full]
+description = "Every configured profile and standalone Claude agent."
+includes = ["*"]
+agents = ["*"]
+```
+
+Every profile has a human-readable `description`, shown by `make profiles`.
+The coordinator groups entries from the same package into one npx command. The
+`includes` field composes named profiles, while `includes = ["*"]` composes every
+other profile. The `full` profile therefore contains no direct skills. Cleanup
+uses the union of every direct profile entry. A package-options entry is needed
+only for npx behavior such as `--full-depth`, not for skill membership. A skill
+name may have only one package owner. `agents = ["*"]` selects every configured
+standalone agent.
+
+Standalone agents have their own source declaration:
+
+```toml
+[agent_sources.claude-kaiser-skills]
+repository = "https://github.com/wolski/claude-kaiser-skills.git"
 agents = ["agents/dry-audit.md"]
 ```
 
-## Upstream repos
+The agent repository is cloned under `repos/` when required. No skill is read from
+that clone.
 
-| Local name | Source | Contents |
-|-----------|--------|----------|
-| `claude-kaiser-skills` | [wolski/claude-kaiser-skills](https://github.com/wolski/claude-kaiser-skills) | Custom skills for proteomics, R, Python, Snakemake; custom agents |
-| `posit-dev-skills` | [posit-dev/skills](https://github.com/posit-dev/skills) | R package development, testing, cli, lifecycle |
-| `marimo-team-skills` | [marimo-team/skills](https://github.com/marimo-team/skills) | Marimo notebook authoring, batch, migration |
-| `anthropics-skills` | [anthropics/skills](https://github.com/anthropics/skills) | Skill creator workbench |
-| `fgcz-skills` | [fgcz/skills](https://github.com/fgcz/skills) | FGCZ infrastructure, B-Fabric, bioinformatics |
-| `agent-rules-skill` | [netresearch/agent-rules-skill](https://github.com/netresearch/agent-rules-skill) | AGENTS.md generation and validation |
+## Commands
 
-## Plugins
-
-Plugins are managed via `claude plugin install`, not symlinks:
-
-- code-simplifier
-- claude-md-management
-- code-review
-- hookify
-
-```bash
-make plugins         # Install all
-make plugins-remove  # Uninstall all
-make plugins-list    # Show installed
+```text
+make install         Install PROFILE (default: full)
+make switch          Switch the direct npx installation to PROFILE
+make profiles        List configured profiles
+make update          Update global npx skills and agent sources
+make clean           Remove only configured skills and managed agents
+make list            List installed skills, agents, and matching profile
+make status          Show standalone agent-source Git status
+make audit           Compare installed skill hashes with review records
+make dry-run         Preview a profile switch
+make test            Run the test suite
+make plugins         Install configured Claude plugins
+make plugins-remove  Uninstall configured Claude plugins
+make plugins-list    List installed Claude plugins
 ```
 
-## All targets
-
-```
-make help            Show available targets
-make clone           Clone repos (skip existing)
-make update          Pull latest from all repos
-make install         Symlink skills and agents
-make clean           Remove all managed symlinks
-make list            Show what's currently installed
-make status          Show git status of each repo
-make audit           Report skills with upstream drift
-make dry-run         Preview install without making changes
-make test            Run test suite
-make plugins         Install plugins from marketplace
-make plugins-remove  Uninstall all managed plugins
-make plugins-list    List installed plugins
-```
-
-## Implementation
-
-The Makefile delegates to `skill_coordinator.py` (Python CLI using cyclopts). All configuration — repos, plugins, skills, and agents — lives in `skills.toml` (loaded via Pydantic).
+The Makefile delegates to the typed Cyclopts CLI in `skill_coordinator.py`. The
+npx version is pinned there so installation behavior does not silently change.

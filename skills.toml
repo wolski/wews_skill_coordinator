@@ -1,130 +1,153 @@
-# Claude Code Skills Coordinator — configuration
-# All repos, plugins, skills, and agents in one file.
-
-[repos]
-claude-kaiser-skills = "https://github.com/wolski/claude-kaiser-skills.git"
-posit-dev-skills     = "https://github.com/posit-dev/skills.git"
-marimo-team-skills   = "https://github.com/marimo-team/skills.git"
-anthropics-skills    = "https://github.com/anthropics/skills.git"
-fgcz-skills          = "https://github.com/fgcz/skills.git"
-google-deepmind-science-skills = "https://github.com/google-deepmind/science-skills.git"
-agent-rules-skill   = "https://github.com/netresearch/agent-rules-skill.git"
+# Skills Coordinator configuration
+# Profiles are composable and are the authoritative skill inventory.
+# Each skill uses owner/repository@skill-name notation.
 
 [plugins.claude-plugins-official]
-names = [
-    "code-simplifier",
-    "claude-md-management",
-    "code-review",
-    "hookify",
+names = ["code-simplifier", "claude-md-management", "code-review", "hookify"]
+
+[package_options."wolski/claude-kaiser-skills"]
+full_depth = true
+
+# npx manages skills, but not standalone Claude Code agent definitions.
+[agent_sources.claude-kaiser-skills]
+repository = "https://github.com/wolski/claude-kaiser-skills.git"
+agents = ["agents/r-development.md", "agents/dry-audit.md", "agents/dead-code-audit.md"]
+
+[profiles.full]
+description = "Every configured profile and standalone Claude agent."
+includes = ["*"]
+agents = ["*"]
+
+[profiles.python-design]
+description = "Wolski's Python style and bounded design guidance, plus public Clean Architecture."
+skills = [
+    "wolski/claude-kaiser-skills@python-style-guide",
+    "wolski/claude-kaiser-skills@design-principles",
+    "wolski/claude-kaiser-skills@polymorphism-over-discrimination",
+    "pproenca/dot-skills@clean-architecture",
 ]
 
-# ─── Skills per repo ───────────────────────────────────────────────
-# Each [skills.<repo>] must match a key in [repos].
-# paths  = skill directories symlinked to ~/.claude/skills/
-# agents = agent .md files symlinked to ~/.claude/agents/
-
-[skills.claude-kaiser-skills]
-paths = [
-    "r-development",
-    "python-style-guide",
-    "polymorphism-over-discrimination",
-    "design-principles",
-    "mixed-r-python-pipeline",
-    "snakemake-compact",
-    "shell-scripting",
-    "scverse",
-    "scverse-compact",
-    "plotly",
-    "plotly-compact",
-    "pixi",
-    "general-agentic",
-    "phosphoproteomics-ptm-analysis",
-    "prolfquapp-dea",
-    "prolfqua-adding-models",
-    "apb-toml-level-design",
-    "bfabricpy",
-    "bookdown",
-    "school-study-materials",
-    "review/multiagent-review",
-    "review/verify-review-findings",
-    "review/software-manuscript-review",
-    "marimo-background-jobs",
-    "advanced-r-engineering"
-]
-agents = [
-    "agents/r-development.md",
-    "agents/dry-audit.md",
-    "agents/dead-code-audit.md",
+[profiles.python-design-public]
+description = "Public Python design-pattern and Clean Architecture guidance, without Wolski skills."
+skills = [
+    "wshobson/agents@python-design-patterns",
+    "pproenca/dot-skills@clean-architecture",
 ]
 
-[skills.posit-dev-skills]
-paths = [
-    "r-lib/r-package-development",
-    "r-lib/testing-r-packages",
-    "r-lib/r-cli-app",
-    "r-lib/cli",
-    "r-lib/lifecycle",
+[profiles.marimo]
+description = "Marimo notebook authoring, migration, widgets, batch execution, and background jobs."
+skills = [
+    "marimo-team/skills@marimo-notebook",
+    "marimo-team/skills@marimo-batch",
+    "marimo-team/skills@streamlit-to-marimo",
+    "marimo-team/skills@jupyter-to-marimo",
+    "marimo-team/skills@anywidget-generator",
+    "marimo-team/skills@wasm-compatibility",
+    "marimo-team/skills@add-molab-badge",
+    "marimo-team/skills@implement-paper",
+    "wolski/claude-kaiser-skills@marimo-background-jobs",
 ]
 
-[skills.marimo-team-skills]
-paths = [
-    "skills/marimo-notebook",
-    "skills/marimo-batch",
-    "skills/streamlit-to-marimo",
-    "skills/jupyter-to-marimo",
-    "skills/anywidget",
-    "skills/wasm-compatibility",
-    "skills/add-molab-badge",
-    "skills/implement-paper",
+[profiles.python]
+description = "Broad Python engineering toolkit with design, workflow, plotting, scientific, and notebook support."
+includes = ["python-design", "marimo"]
+skills = [
+    "wolski/claude-kaiser-skills@general-agentic",
+    "wolski/claude-kaiser-skills@mixed-r-python-pipeline",
+    "wolski/claude-kaiser-skills@snakemake-compact",
+    "wolski/claude-kaiser-skills@shell-scripting",
+    "wolski/claude-kaiser-skills@pixi-package-manager",
+    "wolski/claude-kaiser-skills@scverse",
+    "wolski/claude-kaiser-skills@scverse-compact",
+    "wolski/claude-kaiser-skills@plotly",
+    "wolski/claude-kaiser-skills@plotly-compact",
+    "google-deepmind/science-skills@uv",
 ]
 
-[skills.anthropics-skills]
-paths = [
-    "skills/skill-creator",
+[profiles.r]
+description = "R development, package engineering, CLI design, testing, and prolfqua workflows."
+skills = [
+    "wolski/claude-kaiser-skills@r-development",
+    "wolski/claude-kaiser-skills@advanced-r-engineering",
+    "posit-dev/skills@r-package-development",
+    "posit-dev/skills@testing-r-packages",
+    "posit-dev/skills@r-cli-app",
+    "posit-dev/skills@cli",
+    "posit-dev/skills@lifecycle",
+    "wolski/claude-kaiser-skills@bookdown",
+    "fgcz/skills@prolfquapp-dea",
+    "fgcz/skills@adding-models-to-prolfqua",
 ]
 
-[skills.agent-rules-skill]
-paths = [
-    "skills/agent-rules",
+[profiles.science]
+description = "Scientific Python analysis plus literature, sequence, structure, pathway, and expression databases."
+skills = [
+    "wolski/claude-kaiser-skills@scverse",
+    "wolski/claude-kaiser-skills@plotly",
+    "google-deepmind/science-skills@uv",
+    "google-deepmind/science-skills@uniprot-database",
+    "google-deepmind/science-skills@pubmed-database",
+    "google-deepmind/science-skills@literature-search-europepmc",
+    "google-deepmind/science-skills@literature-search-openalex",
+    "google-deepmind/science-skills@ensembl-database",
+    "google-deepmind/science-skills@ncbi-sequence-fetch",
+    "google-deepmind/science-skills@pdb-database",
+    "google-deepmind/science-skills@alphafold-database-fetch-and-analyze",
+    "google-deepmind/science-skills@protein-sequence-similarity-search",
+    "google-deepmind/science-skills@protein-sequence-msa",
+    "google-deepmind/science-skills@string-database",
+    "google-deepmind/science-skills@reactome-database",
+    "google-deepmind/science-skills@human-protein-atlas-database",
+    "google-deepmind/science-skills@gtex-database",
 ]
 
-[skills.fgcz-skills]
-paths = [
-    "meta-skills/skills/fgcz-context",
-    "meta-skills/skills/constitution",
-    "meta-skills/skills/skill-contribution",
-    "meta-skills/skills/verification-loops",
-    "meta-skills/skills/create-pull-request",
-    "meta-skills/skills/lessons-compounder",
-    "communication/skills/interview-to-spec",
-    "bfabric-lims/skills/bfabric-query",
-    "bfabric-lims/skills/bfabric-tools",
-    #"fgcz-infrastructure/skills/fgcz-custom-analysis-register",
-    #"fgcz-infrastructure/skills/sushi-framework",
-    #"fgcz-infrastructure/skills/fgcz-sushi-app-dev",
-    #"fgcz-infrastructure/skills/ezpyz-app-dev",
-    #"fgcz-infrastructure/skills/shinyproxy-deployment",
-    "fgcz-infrastructure/skills/fgcz-gitlab",
-    "fgcz-infrastructure/skills/fgcz-modules",
-    "proteomics-data-analysis/skills/fix-prolfqua-dea-app",
-    "proteomics-data-analysis/skills/fix-ptm-pipeline"
+[profiles.proteomics]
+description = "Proteomics conversion, differential analysis, PTM analysis, B-Fabric, and pipeline repair."
+skills = [
+    "fgcz/skills@phosphoproteomics-ptm-analysis",
+    "fgcz/skills@prolfquapp-dea",
+    "fgcz/skills@adding-models-to-prolfqua",
+    "wolski/claude-kaiser-skills@apb-toml-level-design",
+    "wolski/claude-kaiser-skills@bfabricpy",
+    "fgcz/skills@fix-prolfqua-dea-app",
+    "fgcz/skills@fix-ptm-pipeline",
+    "fgcz/skills@run-ptm-pipeline",
 ]
 
-[skills.google-deepmind-science-skills]
-paths = [
-    "skills/uv",
-    "skills/uniprot_database",
-    "skills/pubmed_database",
-    "skills/literature_search_europepmc",
-    "skills/literature_search_openalex",
-    "skills/ensembl_database",
-    "skills/ncbi_sequence_fetch",
-    "skills/pdb_database",
-    "skills/alphafold_database_fetch_and_analyze",
-    "skills/protein_sequence_similarity_search",
-    "skills/protein_sequence_msa",
-    "skills/string_database",
-    "skills/reactome_database",
-    "skills/human_protein_atlas_database",
-    "skills/gtex_database",
+[profiles.fgcz]
+description = "FGCZ context, contribution workflows, infrastructure, B-Fabric, and application repair."
+skills = [
+    "fgcz/skills@fgcz-context",
+    "fgcz/skills@constitution",
+    "fgcz/skills@skill-contribution",
+    "fgcz/skills@verification-loops",
+    "fgcz/skills@create-pull-request",
+    "fgcz/skills@lessons-compounder",
+    "fgcz/skills@interview-to-spec",
+    "fgcz/skills@bfabric-query",
+    "fgcz/skills@bfabric-tools",
+    "fgcz/skills@fgcz-gitlab",
+    "fgcz/skills@fgcz-modules",
+    "fgcz/skills@fix-prolfqua-dea-app",
+    "fgcz/skills@fix-ptm-pipeline",
+    "fgcz/skills@run-ptm-pipeline",
 ]
+
+[profiles.review]
+description = "Multi-perspective code review, finding verification, and software-manuscript review."
+skills = [
+    "wolski/claude-kaiser-skills@multiagent-review",
+    "wolski/claude-kaiser-skills@verify-review-findings",
+    "wolski/claude-kaiser-skills@software-manuscript-review",
+]
+
+[profiles.meta]
+description = "Skill creation and repository-level agent instruction authoring."
+skills = [
+    "anthropics/skills@skill-creator",
+    "netresearch/agent-rules-skill@agent-rules",
+]
+
+[profiles.education]
+description = "Generate structured school summaries, learning objectives, and practice materials."
+skills = ["wolski/claude-kaiser-skills@school-study-materials"]
