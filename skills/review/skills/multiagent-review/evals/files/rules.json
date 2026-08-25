@@ -1,0 +1,22 @@
+{
+  "rules": [
+    {
+      "software": "diann",
+      "column_roles": {
+        "protein_accessions": "Protein.Ids"
+      }
+    },
+    {
+      "software": "maxquant",
+      "column_roles": {
+        "protein_accessions": "Proteins"
+      }
+    },
+    {
+      "software": "peaks",
+      "column_roles": {
+        "protein_accessions": "Accession"
+      }
+    }
+  ]
+}

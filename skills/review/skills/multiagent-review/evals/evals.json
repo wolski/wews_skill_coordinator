@@ -1,0 +1,52 @@
+{
+  "skill_name": "multiagent-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a multi-agent code review of declarative_boundary.py. Treat rules.json as the repository-owned schema and source of vendor mappings.",
+      "expected_output": "The review identifies that domain mappings and precedence have leaked from rules.json into resolver control flow, recommends a validated declarative invariant and one generic resolver, and does not propose Strategy for data-only variation.",
+      "files": [
+        "evals/files/declarative_boundary.py",
+        "evals/files/rules.json"
+      ],
+      "expectations": [
+        "The report flags the explicit/stored-role/hard-coded-candidate/None chain as a declarative-boundary problem.",
+        "The report explains that adding a vendor or alias should change rules.json rather than resolver control flow.",
+        "The recommended fix strengthens and validates the rule schema before simplifying the consumer.",
+        "The report does not recommend Strategy for field-name or vendor-data variation.",
+        "Specialist coverage includes a Declarative-boundary audit marked FINDING with a finding ID."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Run a multi-agent code review of public_api.py, focusing on the public contract and the responsibilities of the entry point.",
+      "expected_output": "The review produces a major public-API finding covering Any, duplicated configuration sources, implicit modes, and container-specific responsibilities, with a concrete typed redesign.",
+      "files": [
+        "evals/files/public_api.py"
+      ],
+      "expectations": [
+        "The report identifies Any in the public parameter and return contract as erased type information.",
+        "The report identifies the configuration object plus individual optional overrides as competing sources of truth.",
+        "The report identifies container dispatch, computation, and optional storage as mixed responsibilities or implicit modes.",
+        "The proposed fix uses concrete domain types or typed adapters and one typed core with cohesive configuration.",
+        "The proposed redesign is proportional to observed callers and behavior and does not add unsupported abstraction layers.",
+        "The report does not claim that the keyword-only star or every use of None is inherently defective.",
+        "Specialist coverage includes a Public-API audit marked FINDING with a finding ID."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Run a multi-agent code review of cohesive_api.py. Report only material design or API issues.",
+      "expected_output": "The review does not manufacture a finding from cohesive guard clauses, one optional parameter, or a keyword-only argument.",
+      "files": [
+        "evals/files/cohesive_api.py"
+      ],
+      "expectations": [
+        "The report does not flag the function merely because it contains several if statements.",
+        "The report does not flag the keyword-only star or the single cohesive optional parameter.",
+        "The report recognizes the concrete DataFrame and Series contract.",
+        "The Public-API audit is PASS and the Declarative-boundary audit is N/A or PASS."
+      ]
+    }
+  ]
+}

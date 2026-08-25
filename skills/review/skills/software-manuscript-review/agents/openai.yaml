@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Manuscript Review"
+  short_description: "Evidence-first reviews for software manuscripts"
+  default_prompt: "Use $software-manuscript-review to audit this software manuscript review package and draft evidence-backed reviewer comments."
