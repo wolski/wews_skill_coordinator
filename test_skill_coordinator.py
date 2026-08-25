@@ -10,7 +10,6 @@ from pydantic import ValidationError
 
 import skill_coordinator
 from skill_coordinator import (
-    AgentSource,
     PackageOptions,
     PackageSelection,
     PluginSource,
@@ -20,7 +19,9 @@ from skill_coordinator import (
     all_skill_names,
     all_skill_references,
     load_config,
+    local_skill_inventory,
     resolve_profile,
+    validate_local_inventory,
 )
 
 CONFIG_TOML = """\
@@ -30,14 +31,9 @@ names = ["plugin-a"]
 [package_options."owner/local"]
 full_depth = true
 
-[agent_sources.local]
-repository = "https://github.com/owner/local.git"
-agents = ["agents/reviewer.md"]
-
 [profiles.full]
 description = "Everything"
 includes = ["*"]
-agents = ["*"]
 
 [profiles.python-style]
 description = "Python style"
@@ -51,7 +47,6 @@ skills = ["owner/local@r-style"]
 description = "Python tools"
 includes = ["python-style"]
 skills = ["owner/public@clean-architecture"]
-agents = []
 """
 
 
@@ -64,25 +59,14 @@ def config_file(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def configured(config_file: Path, tmp_path: Path, monkeypatch) -> Path:
-    repos = tmp_path / "repos"
     monkeypatch.setattr(skill_coordinator, "CONF_TOML", config_file)
-    monkeypatch.setattr(skill_coordinator, "REPOS_DIR", repos)
-    monkeypatch.setattr(
-        skill_coordinator, "CLAUDE_SKILLS_DIR", tmp_path / "claude-skills"
-    )
-    monkeypatch.setattr(
-        skill_coordinator, "CODEX_SKILLS_DIR", tmp_path / "codex-skills"
-    )
-    monkeypatch.setattr(skill_coordinator, "AGENTS_DIR", tmp_path / "agents")
-    return repos
+    return tmp_path
 
 
 class TestConfig:
     def test_models(self):
         options = PackageOptions()
-        source = AgentSource(repository="url", agents=["agents/a.md"])
         assert not options.full_depth
-        assert source.agents == ["agents/a.md"]
         assert PluginSource(names=["p"]).names == ["p"]
         assert Profile(description="Test profile").skills == []
 
@@ -90,7 +74,6 @@ class TestConfig:
         monkeypatch.setattr(skill_coordinator, "CONF_TOML", config_file)
         config = load_config()
         assert config.package_options["owner/local"].full_depth
-        assert config.agent_sources["local"].agents == ["agents/reviewer.md"]
         assert all_skill_names(config) == {
             "python-style",
             "r-style",
@@ -105,15 +88,6 @@ class TestConfig:
                         description="Invalid",
                         skills=["a/a@same", "a/a@same"],
                     )
-                }
-            )
-
-    def test_duplicate_agent_basename_rejected(self):
-        with pytest.raises(ValidationError, match="duplicate agent"):
-            SkillsConfig(
-                agent_sources={
-                    "a": AgentSource(repository="a", agents=["x/review.md"]),
-                    "b": AgentSource(repository="b", agents=["y/review.md"]),
                 }
             )
 
@@ -208,6 +182,42 @@ class TestConfig:
         assert reference.name == "one"
         assert reference.identifier == "owner/repo@one"
 
+    def test_local_inventory_matches_config(self, tmp_path: Path, monkeypatch):
+        root = tmp_path / "skills"
+        path = root / "engineering" / "skills" / "local-one" / "SKILL.md"
+        path.parent.mkdir(parents=True)
+        path.write_text("---\nname: local-one\ndescription: Test.\n---\n")
+        monkeypatch.setattr(skill_coordinator, "LOCAL_SKILLS_DIR", root)
+        config = SkillsConfig(
+            profiles={
+                "one": Profile(
+                    description="One",
+                    skills=[f"{skill_coordinator.LOCAL_PACKAGE}@local-one"],
+                )
+            }
+        )
+        validate_local_inventory(config)
+        assert list(local_skill_inventory(root)) == ["local-one"]
+
+    def test_local_inventory_rejects_unconfigured_skill(
+        self, tmp_path: Path, monkeypatch
+    ):
+        root = tmp_path / "skills"
+        path = root / "engineering" / "skills" / "extra" / "SKILL.md"
+        path.parent.mkdir(parents=True)
+        path.write_text("---\nname: extra\ndescription: Test.\n---\n")
+        monkeypatch.setattr(skill_coordinator, "LOCAL_SKILLS_DIR", root)
+        config = SkillsConfig(
+            profiles={
+                "one": Profile(
+                    description="One",
+                    skills=[f"{skill_coordinator.LOCAL_PACKAGE}@missing"],
+                )
+            }
+        )
+        with pytest.raises(ValueError, match=r"missing=\['missing'\].*extra"):
+            validate_local_inventory(config)
+
 
 class TestProfiles:
     def test_full_selects_everything(self, configured: Path):
@@ -217,7 +227,6 @@ class TestProfiles:
             "r-style",
             "clean-architecture",
         }
-        assert [entry.name for entry in selection.agents] == ["reviewer.md"]
 
     def test_subset_is_grouped_by_package(self, configured: Path):
         selection = resolve_profile("python")
@@ -225,7 +234,6 @@ class TestProfiles:
             ("owner/local", ("python-style",)),
             ("owner/public", ("clean-architecture",)),
         ]
-        assert selection.agents == ()
 
     def test_composition_deduplicates_references(self, configured: Path):
         selection = resolve_profile("full")
@@ -286,23 +294,6 @@ class TestSwitch:
         assert len(calls) == 1
         assert calls[0][3] == "add"
 
-    def test_success_adds_then_removes_and_links_agent(
-        self, configured: Path, monkeypatch
-    ):
-        source = configured / "local" / "agents" / "reviewer.md"
-        source.parent.mkdir(parents=True)
-        source.write_text("agent")
-        calls: list[list[str]] = []
-
-        def record(command, **kwargs):
-            calls.append(command)
-            return subprocess.CompletedProcess(command, 0)
-
-        monkeypatch.setattr(skill_coordinator.subprocess, "run", record)
-        skill_coordinator.switch(profile="full")
-        assert [command[3] for command in calls] == ["add", "add"]
-        assert (skill_coordinator.AGENTS_DIR / "reviewer.md").is_symlink()
-
     def test_subset_removes_only_unselected_configured_skill(
         self, configured: Path, monkeypatch
     ):
@@ -315,44 +306,6 @@ class TestSwitch:
         monkeypatch.setattr(skill_coordinator.subprocess, "run", record)
         skill_coordinator.switch(profile="python")
         assert calls[-1][3:] == ["remove", "r-style", "--global", "--yes"]
-
-    def test_full_dry_run_accepts_existing_managed_agent_link(
-        self, configured: Path, monkeypatch, capsys
-    ):
-        source = configured / "local" / "agents" / "reviewer.md"
-        source.parent.mkdir(parents=True)
-        source.write_text("agent")
-        skill_coordinator.AGENTS_DIR.mkdir()
-        destination = skill_coordinator.AGENTS_DIR / "reviewer.md"
-        destination.symlink_to(source)
-
-        def unexpected_run(*args, **kwargs):
-            raise AssertionError("dry run executed a command")
-
-        monkeypatch.setattr(skill_coordinator.subprocess, "run", unexpected_run)
-        skill_coordinator.switch(profile="full", dry_run=True)
-
-        output = capsys.readouterr().out
-        assert "would remove legacy link" in output
-        assert "would link   reviewer.md" in output
-        assert destination.is_symlink()
-
-    def test_legacy_links_are_removed_but_external_links_survive(
-        self, configured: Path, tmp_path: Path
-    ):
-        managed_source = configured / "local" / "python-style"
-        managed_source.mkdir(parents=True)
-        external_source = tmp_path / "external"
-        external_source.mkdir()
-        directory = skill_coordinator.CLAUDE_SKILLS_DIR
-        directory.mkdir()
-        managed = directory / "managed"
-        external = directory / "external"
-        managed.symlink_to(managed_source)
-        external.symlink_to(external_source)
-        skill_coordinator._remove_links_to_repositories(directory, dry_run=False)
-        assert not managed.exists()
-        assert external.is_symlink()
 
 
 class TestNpxList:
@@ -402,7 +355,7 @@ class TestPlugins:
 class TestProductionConfig:
     def test_real_config_loads(self):
         config = load_config()
-        assert config.package_options["wolski/claude-kaiser-skills"].full_depth
+        assert config.package_options[skill_coordinator.LOCAL_PACKAGE].full_depth
         assert config.profiles["full"].skills == []
         assert config.profiles["full"].includes == ["*"]
         assert len(all_skill_references(config)) == 71
@@ -411,6 +364,14 @@ class TestProductionConfig:
         assert "clean-architecture" in all_skill_names(config)
         assert "adding-models-to-prolfqua" in all_skill_names(config)
         assert "prolfqua-adding-models" not in all_skill_names(config)
+        assert "apb-toml-level-design" not in all_skill_names(config)
+        assert "bfabricpy" not in all_skill_names(config)
+        assert "directed-folder-imports" in all_skill_names(config)
+        assert set(local_skill_inventory()) == {
+            reference.name
+            for reference in all_skill_references(config)
+            if reference.package == skill_coordinator.LOCAL_PACKAGE
+        }
 
     def test_every_profile_resolves(self):
         for profile in load_config().profiles:

@@ -2,7 +2,7 @@ SHELL := /bin/bash
 PY := uv run --with cyclopts --with pydantic --with tomli python skill_coordinator.py
 PROFILE ?= full
 
-.PHONY: help update install switch profiles clean list status audit plugins plugins-remove plugins-list dry-run test
+.PHONY: help update install switch profiles clean list audit plugins plugins-remove plugins-list dry-run test
 
 help: ## Show this help
 	@echo "Claude Code Skills Coordinator"
@@ -13,7 +13,7 @@ help: ## Show this help
 	@echo ""
 	@$(PY) --help
 
-update: ## Update installed npx skills and standalone agents
+update: ## Update installed npx skills
 	@$(PY) update
 
 install: ## Install PROFILE directly through npx skills
@@ -25,14 +25,11 @@ switch: ## Switch the direct npx installation to PROFILE
 profiles: ## List configured skill profiles
 	@$(PY) profiles
 
-clean: ## Remove configured npx skills and standalone agents
+clean: ## Remove configured npx skills
 	@$(PY) clean
 
-list: ## Show npx-installed skills, agents, and matching profile
+list: ## Show npx-installed skills and matching profile
 	@$(PY) list
-
-status: ## Show git status of standalone agent sources
-	@$(PY) status
 
 audit: ## Report skills with upstream drift
 	@$(PY) audit

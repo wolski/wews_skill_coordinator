@@ -5,25 +5,20 @@
 [plugins.claude-plugins-official]
 names = ["code-simplifier", "claude-md-management", "code-review", "hookify"]
 
-[package_options."wolski/claude-kaiser-skills"]
+[package_options."wolski/wews_skill_coordinator"]
 full_depth = true
 
-# npx manages skills, but not standalone Claude Code agent definitions.
-[agent_sources.claude-kaiser-skills]
-repository = "https://github.com/wolski/claude-kaiser-skills.git"
-agents = ["agents/r-development.md", "agents/dry-audit.md", "agents/dead-code-audit.md"]
-
 [profiles.full]
-description = "Every configured profile and standalone Claude agent."
+description = "Every configured skill profile."
 includes = ["*"]
-agents = ["*"]
 
 [profiles.python-design]
 description = "Wolski's Python style and bounded design guidance, plus public Clean Architecture."
 skills = [
-    "wolski/claude-kaiser-skills@python-style-guide",
-    "wolski/claude-kaiser-skills@design-principles",
-    "wolski/claude-kaiser-skills@polymorphism-over-discrimination",
+    "wolski/wews_skill_coordinator@python-style-guide",
+    "wolski/wews_skill_coordinator@design-principles",
+    "wolski/wews_skill_coordinator@polymorphism-over-discrimination",
+    "wolski/wews_skill_coordinator@directed-folder-imports",
     "pproenca/dot-skills@clean-architecture",
 ]
 
@@ -45,36 +40,34 @@ skills = [
     "marimo-team/skills@wasm-compatibility",
     "marimo-team/skills@add-molab-badge",
     "marimo-team/skills@implement-paper",
-    "wolski/claude-kaiser-skills@marimo-background-jobs",
+    "wolski/wews_skill_coordinator@marimo-background-jobs",
 ]
 
 [profiles.python]
 description = "Broad Python engineering toolkit with design, workflow, plotting, scientific, and notebook support."
 includes = ["python-design", "marimo"]
 skills = [
-    "wolski/claude-kaiser-skills@general-agentic",
-    "wolski/claude-kaiser-skills@mixed-r-python-pipeline",
-    "wolski/claude-kaiser-skills@snakemake-compact",
-    "wolski/claude-kaiser-skills@shell-scripting",
-    "wolski/claude-kaiser-skills@pixi-package-manager",
-    "wolski/claude-kaiser-skills@scverse",
-    "wolski/claude-kaiser-skills@scverse-compact",
-    "wolski/claude-kaiser-skills@plotly",
-    "wolski/claude-kaiser-skills@plotly-compact",
+    "wolski/wews_skill_coordinator@general-agentic",
+    "wolski/wews_skill_coordinator@mixed-r-python-pipeline",
+    "wolski/wews_skill_coordinator@snakemake-compact",
+    "wolski/wews_skill_coordinator@shell-scripting",
+    "wolski/wews_skill_coordinator@pixi-package-manager",
+    "wolski/wews_skill_coordinator@scverse",
+    "wolski/wews_skill_coordinator@plotly",
     "google-deepmind/science-skills@uv",
 ]
 
 [profiles.r]
 description = "R development, package engineering, CLI design, testing, and prolfqua workflows."
 skills = [
-    "wolski/claude-kaiser-skills@r-development",
-    "wolski/claude-kaiser-skills@advanced-r-engineering",
+    "wolski/wews_skill_coordinator@r-development",
+    "wolski/wews_skill_coordinator@advanced-r-engineering",
     "posit-dev/skills@r-package-development",
     "posit-dev/skills@testing-r-packages",
     "posit-dev/skills@r-cli-app",
     "posit-dev/skills@cli",
     "posit-dev/skills@lifecycle",
-    "wolski/claude-kaiser-skills@bookdown",
+    "wolski/wews_skill_coordinator@bookdown",
     "fgcz/skills@prolfquapp-dea",
     "fgcz/skills@adding-models-to-prolfqua",
 ]
@@ -82,8 +75,8 @@ skills = [
 [profiles.science]
 description = "Scientific Python analysis plus literature, sequence, structure, pathway, and expression databases."
 skills = [
-    "wolski/claude-kaiser-skills@scverse",
-    "wolski/claude-kaiser-skills@plotly",
+    "wolski/wews_skill_coordinator@scverse",
+    "wolski/wews_skill_coordinator@plotly",
     "google-deepmind/science-skills@uv",
     "google-deepmind/science-skills@uniprot-database",
     "google-deepmind/science-skills@pubmed-database",
@@ -107,8 +100,11 @@ skills = [
     "fgcz/skills@phosphoproteomics-ptm-analysis",
     "fgcz/skills@prolfquapp-dea",
     "fgcz/skills@adding-models-to-prolfqua",
-    "wolski/claude-kaiser-skills@apb-toml-level-design",
-    "wolski/claude-kaiser-skills@bfabricpy",
+    "fgcz/skills@bfabric-connect",
+    "fgcz/skills@bfabric-query",
+    "fgcz/skills@bfabric-tools",
+    "fgcz/skills@bfabric-dataset",
+    "fgcz/skills@bfabric-app-runner",
     "fgcz/skills@fix-prolfqua-dea-app",
     "fgcz/skills@fix-ptm-pipeline",
     "fgcz/skills@run-ptm-pipeline",
@@ -124,8 +120,11 @@ skills = [
     "fgcz/skills@create-pull-request",
     "fgcz/skills@lessons-compounder",
     "fgcz/skills@interview-to-spec",
+    "fgcz/skills@bfabric-connect",
     "fgcz/skills@bfabric-query",
     "fgcz/skills@bfabric-tools",
+    "fgcz/skills@bfabric-dataset",
+    "fgcz/skills@bfabric-app-runner",
     "fgcz/skills@fgcz-gitlab",
     "fgcz/skills@fgcz-modules",
     "fgcz/skills@fix-prolfqua-dea-app",
@@ -136,9 +135,9 @@ skills = [
 [profiles.review]
 description = "Multi-perspective code review, finding verification, and software-manuscript review."
 skills = [
-    "wolski/claude-kaiser-skills@multiagent-review",
-    "wolski/claude-kaiser-skills@verify-review-findings",
-    "wolski/claude-kaiser-skills@software-manuscript-review",
+    "wolski/wews_skill_coordinator@multiagent-review",
+    "wolski/wews_skill_coordinator@verify-review-findings",
+    "wolski/wews_skill_coordinator@software-manuscript-review",
 ]
 
 [profiles.meta]
@@ -150,4 +149,4 @@ skills = [
 
 [profiles.education]
 description = "Generate structured school summaries, learning objectives, and practice materials."
-skills = ["wolski/claude-kaiser-skills@school-study-materials"]
+skills = ["wolski/wews_skill_coordinator@school-study-materials"]

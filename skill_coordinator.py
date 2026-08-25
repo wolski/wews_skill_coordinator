@@ -17,17 +17,15 @@ from pydantic import BaseModel, Field, model_validator
 
 app = cyclopts.App(
     name="skill-coordinator",
-    help="Install npx skills, switch profiles, and manage agents/plugins.",
+    help="Install npx skills, switch profiles, and manage Claude plugins.",
 )
 
 ROOT = Path(__file__).resolve().parent
 CONF_TOML = ROOT / "skills.toml"
-REPOS_DIR = ROOT / "repos"
+LOCAL_PACKAGE = "wolski/wews_skill_coordinator"
+LOCAL_SKILLS_DIR = ROOT / "skills"
 NPX_SKILLS_VERSION = "1.5.23"
 NPX_LOCK = Path.home() / ".agents" / ".skill-lock.json"
-CLAUDE_SKILLS_DIR = Path.home() / ".claude" / "skills"
-CODEX_SKILLS_DIR = Path.home() / ".codex" / "skills"
-AGENTS_DIR = Path.home() / ".claude" / "agents"
 KAIROS_KNOW_DIR = ROOT / ".kairos" / "knowledge"
 
 
@@ -39,32 +37,19 @@ class PackageOptions(BaseModel):
     full_depth: bool = False
 
 
-class AgentSource(BaseModel):
-    repository: str
-    agents: list[str] = Field(default_factory=list)
-
-
 class Profile(BaseModel):
     description: str
     includes: list[str] = Field(default_factory=list)
     skills: list[str] = Field(default_factory=list)
-    agents: list[str] = Field(default_factory=list)
 
 
 class SkillsConfig(BaseModel):
     plugins: dict[str, PluginSource] = Field(default_factory=dict)
     package_options: dict[str, PackageOptions] = Field(default_factory=dict)
-    agent_sources: dict[str, AgentSource] = Field(default_factory=dict)
     profiles: dict[str, Profile] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_names(self) -> SkillsConfig:
-        agent_names = [
-            Path(agent).name
-            for source in self.agent_sources.values()
-            for agent in source.agents
-        ]
-        self._reject_duplicates("agent", agent_names)
         package_by_skill: dict[str, str] = {}
         referenced_packages: set[str] = set()
         for profile_name, profile in self.profiles.items():
@@ -83,7 +68,6 @@ class SkillsConfig(BaseModel):
                         f"skill {reference.name!r} is referenced from both "
                         f"{previous_package!r} and {reference.package!r}"
                     )
-            self._validate_agents(profile_name, profile.agents, set(agent_names))
         self._validate_composition_graph()
         unknown_options = set(self.package_options) - referenced_packages
         if unknown_options:
@@ -146,21 +130,6 @@ class SkillsConfig(BaseModel):
         if duplicates:
             raise ValueError(f"duplicate {kind} names: {duplicates}")
 
-    @staticmethod
-    def _validate_agents(
-        profile_name: str,
-        members: list[str],
-        known: set[str],
-    ) -> None:
-        if "*" in members and members != ["*"]:
-            raise ValueError(f"profile {profile_name!r} must use '*' alone for agents")
-        unknown = set(members) - known - {"*"}
-        if unknown:
-            raise ValueError(
-                f"profile {profile_name!r} references unknown agents: {unknown}"
-            )
-
-
 @dataclass(frozen=True, slots=True)
 class SkillReference:
     package: str
@@ -215,26 +184,70 @@ class PackageSelection:
 
 
 @dataclass(frozen=True, slots=True)
-class AgentEntry:
-    source_name: str
-    relative_path: str
-    source: Path
-
-    @property
-    def name(self) -> str:
-        return Path(self.relative_path).name
-
-
-@dataclass(frozen=True, slots=True)
 class ProfileSelection:
     packages: tuple[PackageSelection, ...]
     skill_names: frozenset[str]
-    agents: tuple[AgentEntry, ...]
 
 
 def load_config() -> SkillsConfig:
     with CONF_TOML.open("rb") as stream:
-        return SkillsConfig(**tomllib.load(stream))
+        config = SkillsConfig(**tomllib.load(stream))
+    validate_local_inventory(config)
+    return config
+
+
+def _frontmatter_name(path: Path) -> str:
+    lines = path.read_text().splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise ValueError(f"skill has no YAML frontmatter: {path}")
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if line.startswith("name:"):
+            name = line.split(":", 1)[1].strip().strip("'\"")
+            if name:
+                return name
+    raise ValueError(f"skill frontmatter has no name: {path}")
+
+
+def local_skill_inventory(root: Path | None = None) -> dict[str, Path]:
+    root = root or LOCAL_SKILLS_DIR
+    inventory: dict[str, Path] = {}
+    for path in sorted(root.rglob("SKILL.md")):
+        relative = path.relative_to(root)
+        if len(relative.parts) != 4 or relative.parts[1] != "skills":
+            raise ValueError(
+                f"local skill must live at <category>/skills/<name>/SKILL.md: {path}"
+            )
+        name = _frontmatter_name(path)
+        if relative.parts[2] != name:
+            raise ValueError(
+                f"skill directory {relative.parts[2]!r} disagrees with name {name!r}"
+            )
+        if name in inventory:
+            raise ValueError(
+                f"duplicate local skill name {name!r}: {inventory[name]} and {path}"
+            )
+        inventory[name] = path
+    return inventory
+
+
+def validate_local_inventory(config: SkillsConfig) -> None:
+    configured = {
+        reference.name
+        for reference in all_skill_references(config)
+        if reference.package == LOCAL_PACKAGE
+    }
+    if not configured:
+        return
+    inventory = local_skill_inventory()
+    missing = configured - set(inventory)
+    unconfigured = set(inventory) - configured
+    if missing or unconfigured:
+        raise ValueError(
+            "local skill inventory disagrees with skills.toml: "
+            f"missing={sorted(missing)}, unconfigured={sorted(unconfigured)}"
+        )
 
 
 def npx_command(*arguments: str) -> list[str]:
@@ -273,26 +286,6 @@ def all_skill_names(config: SkillsConfig) -> frozenset[str]:
     return frozenset(reference.name for reference in all_skill_references(config))
 
 
-def all_agent_entries(config: SkillsConfig) -> tuple[AgentEntry, ...]:
-    return tuple(
-        AgentEntry(source_name, path, REPOS_DIR / source_name / path)
-        for source_name, source in config.agent_sources.items()
-        for path in source.agents
-    )
-
-
-def profile_agent_names(profile_name: str, config: SkillsConfig) -> frozenset[str]:
-    names: set[str] = set()
-    for included in included_profile_names(profile_name, config):
-        names.update(profile_agent_names(included, config))
-    agents = config.profiles[profile_name].agents
-    if agents == ["*"]:
-        names.update(entry.name for entry in all_agent_entries(config))
-    else:
-        names.update(agents)
-    return frozenset(names)
-
-
 def resolve_profile(
     profile_name: str, config: SkillsConfig | None = None
 ) -> ProfileSelection:
@@ -314,12 +307,9 @@ def resolve_profile(
         )
         for package, package_references in references_by_package.items()
     )
-    entries = all_agent_entries(config)
-    selected_agent_names = profile_agent_names(profile_name, config)
     return ProfileSelection(
         packages=packages,
         skill_names=frozenset(reference.name for reference in references),
-        agents=tuple(entry for entry in entries if entry.name in selected_agent_names),
     )
 
 
@@ -336,66 +326,6 @@ def _run_npx(
     return subprocess.run(command, check=True, text=True)
 
 
-def _ensure_agent_repositories(
-    config: SkillsConfig, selected_agents: tuple[AgentEntry, ...], *, dry_run: bool
-) -> None:
-    selected_sources = {entry.source_name for entry in selected_agents}
-    for source_name in selected_sources:
-        destination = REPOS_DIR / source_name
-        if destination.exists():
-            continue
-        repository = config.agent_sources[source_name].repository
-        command = ["git", "clone", "--depth", "1", repository, str(destination)]
-        if dry_run:
-            print(f"  would run  {_show_command(command)}")
-        else:
-            REPOS_DIR.mkdir(parents=True, exist_ok=True)
-            subprocess.run(command, check=True)
-
-
-def _is_under(path: Path, parent: Path) -> bool:
-    try:
-        path.resolve().relative_to(parent.resolve())
-    except ValueError:
-        return False
-    return True
-
-
-def _remove_links_to_repositories(directory: Path, *, dry_run: bool) -> None:
-    if not directory.exists():
-        return
-    for path in directory.iterdir():
-        if path.is_symlink() and _is_under(path, REPOS_DIR):
-            tag = "would remove" if dry_run else "removed"
-            print(f"  {tag:12s} legacy link {path}")
-            if not dry_run:
-                path.unlink()
-
-
-def _install_agents(entries: tuple[AgentEntry, ...], *, dry_run: bool) -> None:
-    _remove_links_to_repositories(AGENTS_DIR, dry_run=dry_run)
-    if not dry_run:
-        AGENTS_DIR.mkdir(parents=True, exist_ok=True)
-    for entry in entries:
-        if not entry.source.exists() and not dry_run:
-            raise FileNotFoundError(f"missing agent source: {entry.source}")
-        destination = AGENTS_DIR / entry.name
-        if destination.exists() or destination.is_symlink():
-            managed_link_pending_removal = (
-                dry_run
-                and destination.is_symlink()
-                and _is_under(destination, REPOS_DIR)
-            )
-            if not managed_link_pending_removal:
-                raise FileExistsError(
-                    f"agent destination already exists: {destination}"
-                )
-        tag = "would link" if dry_run else "linked"
-        print(f"  {tag:12s} {entry.name} -> {entry.source}")
-        if not dry_run:
-            destination.symlink_to(entry.source)
-
-
 def _remove_skills(skill_names: frozenset[str], *, dry_run: bool) -> None:
     if not skill_names:
         return
@@ -408,16 +338,12 @@ def _remove_skills(skill_names: frozenset[str], *, dry_run: bool) -> None:
 def _switch(profile: str, *, dry_run: bool) -> None:
     config = load_config()
     selection = resolve_profile(profile, config)
-    _ensure_agent_repositories(config, selection.agents, dry_run=dry_run)
 
     # Installation is deliberately first: a failed source leaves the active set intact.
     for package in selection.packages:
         _run_npx(package.add_command(), dry_run=dry_run)
 
     _remove_skills(all_skill_names(config) - selection.skill_names, dry_run=dry_run)
-    for directory in (CLAUDE_SKILLS_DIR, CODEX_SKILLS_DIR):
-        _remove_links_to_repositories(directory, dry_run=dry_run)
-    _install_agents(selection.agents, dry_run=dry_run)
     print(f"  active profile: {profile}")
 
 
@@ -435,25 +361,14 @@ def install(*, profile: str = "full", dry_run: bool = False) -> None:
 
 @app.command
 def update(*, dry_run: bool = False) -> None:
-    """Update globally installed npx skills and standalone agent sources."""
+    """Update globally installed npx skills."""
     _run_npx(npx_command("update", "--global", "--yes"), dry_run=dry_run)
-    for source_name in load_config().agent_sources:
-        repository = REPOS_DIR / source_name
-        if not (repository / ".git").is_dir():
-            continue
-        command = ["git", "-C", str(repository), "pull", "--ff-only"]
-        if dry_run:
-            print(f"  would run  {_show_command(command)}")
-        else:
-            subprocess.run(command, check=True)
 
 
 @app.command
 def clean(*, dry_run: bool = False) -> None:
-    """Remove configured npx skills and managed standalone agents."""
+    """Remove configured npx skills."""
     _remove_skills(all_skill_names(load_config()), dry_run=dry_run)
-    for directory in (CLAUDE_SKILLS_DIR, CODEX_SKILLS_DIR, AGENTS_DIR):
-        _remove_links_to_repositories(directory, dry_run=dry_run)
 
 
 def _parse_npx_list(output: str) -> list[dict[str, object]]:
@@ -480,7 +395,7 @@ def installed_skills() -> list[dict[str, object]]:
 
 @app.command(name="list")
 def list_installed() -> None:
-    """List global npx skills, managed agents, and matching profiles."""
+    """List global npx skills and matching profiles."""
     records = installed_skills()
     names = {str(record["name"]) for record in records}
     for record in records:
@@ -500,11 +415,6 @@ def list_installed() -> None:
     ]
     print()
     print(f"  matching profile: {', '.join(matches) if matches else 'none'}")
-    print("  managed agents:")
-    for entry in all_agent_entries(load_config()):
-        destination = AGENTS_DIR / entry.name
-        if destination.is_symlink() and _is_under(destination, REPOS_DIR):
-            print(f"    {entry.name}")
 
 
 @app.command
@@ -518,21 +428,7 @@ def profiles() -> None:
         print(f"    {profile.description}")
         print(
             f"    skills={len(resolved.skill_names)} (direct={len(profile.skills)}), "
-            f"agents={len(resolved.agents)}, includes={includes}"
-        )
-
-
-@app.command
-def status() -> None:
-    """Show the Git status of standalone agent repositories."""
-    for source_name in load_config().agent_sources:
-        repository = REPOS_DIR / source_name
-        print(f"=== {source_name} ===")
-        if not (repository / ".git").is_dir():
-            print("  not cloned")
-            continue
-        subprocess.run(
-            ["git", "-C", str(repository), "status", "--short", "--branch"], check=False
+            f"includes={includes}"
         )
 
 

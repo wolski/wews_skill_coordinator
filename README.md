@@ -5,8 +5,9 @@ Every skill is installed directly from its GitHub repository with the pinned
 [`skills`](https://github.com/vercel-labs/skills) npx CLI. There is no coordinator
 skill cache and no coordinator-owned skill symlink layer.
 
-Standalone Claude Code agent definitions remain Git-backed because `npx skills`
-does not manage them. Claude plugins remain delegated to Claude's plugin manager.
+Wolski-owned skill source lives in this repository. Third-party skills remain at
+their authoritative upstream repositories. Claude plugins remain delegated to
+Claude's plugin manager.
 
 ## Quick start
 
@@ -14,7 +15,7 @@ does not manage them. Claude plugins remain delegated to Claude's plugin manager
 make install                         # install the full profile
 make profiles                        # show available profiles
 make switch PROFILE=python-design    # activate a smaller profile
-make update                          # update npx skills and agent definitions
+make update                          # update npx skills
 ```
 
 A switch installs every selected package first. Only after all installs succeed
@@ -27,18 +28,17 @@ Profiles are the authoritative skill inventory. Each entry combines its GitHub
 package and exact npx skill name as `owner/repository@skill`.
 
 ```toml
-[package_options."wolski/claude-kaiser-skills"]
+[package_options."wolski/wews_skill_coordinator"]
 full_depth = true
 
 [profiles.python-design]
 description = "Wolski's Python style and bounded design guidance, plus public Clean Architecture."
 skills = [
-    "wolski/claude-kaiser-skills@python-style-guide",
-    "wolski/claude-kaiser-skills@design-principles",
-    "wolski/claude-kaiser-skills@polymorphism-over-discrimination",
+    "wolski/wews_skill_coordinator@python-style-guide",
+    "wolski/wews_skill_coordinator@design-principles",
+    "wolski/wews_skill_coordinator@polymorphism-over-discrimination",
     "pproenca/dot-skills@clean-architecture",
 ]
-agents = []
 
 [profiles.python-design-public]
 description = "Public Python design-pattern and Clean Architecture guidance, without Wolski skills."
@@ -46,7 +46,6 @@ skills = [
     "wshobson/agents@python-design-patterns",
     "pproenca/dot-skills@clean-architecture",
 ]
-agents = []
 
 [profiles.python]
 description = "Broad Python engineering toolkit."
@@ -54,9 +53,8 @@ includes = ["python-design", "marimo"]
 skills = ["google-deepmind/science-skills@uv"]
 
 [profiles.full]
-description = "Every configured profile and standalone Claude agent."
+description = "Every configured skill profile."
 includes = ["*"]
-agents = ["*"]
 ```
 
 Every profile has a human-readable `description`, shown by `make profiles`.
@@ -65,19 +63,29 @@ The coordinator groups entries from the same package into one npx command. The
 other profile. The `full` profile therefore contains no direct skills. Cleanup
 uses the union of every direct profile entry. A package-options entry is needed
 only for npx behavior such as `--full-depth`, not for skill membership. A skill
-name may have only one package owner. `agents = ["*"]` selects every configured
-standalone agent.
+name may have only one package owner.
 
-Standalone agents have their own source declaration:
+## Owned skill source
 
-```toml
-[agent_sources.claude-kaiser-skills]
-repository = "https://github.com/wolski/claude-kaiser-skills.git"
-agents = ["agents/dry-audit.md"]
+Personal skills use the following source layout:
+
+```text
+skills/<category>/skills/<skill>/
+├── SKILL.md
+├── references/   # when needed
+├── scripts/      # when needed
+├── assets/       # when needed
+└── evals/        # when maintained by the skill
 ```
 
-The agent repository is cloned under `repos/` when required. No skill is read from
-that clone.
+Category folders organize source; they are not Claude plugin packages and contain
+no plugin manifests. A skill owns its resources and must not read files from a
+sibling skill. The repository root composes the categories through `skills.toml`.
+
+Before adding a personal skill in an FGCZ domain, inspect `fgcz/skills`. Reuse a
+duplicate there, contribute missing institutional behavior upstream, or define a
+clearly non-overlapping personal responsibility. Do not keep two broad owners for
+the same workflow.
 
 ## Commands
 
@@ -85,10 +93,9 @@ that clone.
 make install         Install PROFILE (default: full)
 make switch          Switch the direct npx installation to PROFILE
 make profiles        List configured profiles
-make update          Update global npx skills and agent sources
-make clean           Remove only configured skills and managed agents
-make list            List installed skills, agents, and matching profile
-make status          Show standalone agent-source Git status
+make update          Update global npx skills
+make clean           Remove only configured skills
+make list            List installed skills and matching profile
 make audit           Compare installed skill hashes with review records
 make dry-run         Preview a profile switch
 make test            Run the test suite

@@ -3,14 +3,10 @@
     {
       "name": "wews_skill_coordinator",
       "path": "."
-    },
-    {
-      "name": "claude-kaiser-skills",
-      "path": "repos/claude-kaiser-skills"
     }
   ],
   "settings": {
     "explorer.excludeGitIgnore": false,
-    "git.autoRepositoryDetection": "subFolders"
+    "git.autoRepositoryDetection": false
   }
 }
