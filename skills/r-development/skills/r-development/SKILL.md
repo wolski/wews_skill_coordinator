@@ -296,3 +296,11 @@ For detailed guidance beyond the essentials above, consult these reference files
 - **[references/performance.md](references/performance.md)** — Profiling with profvis, benchmarking with bench, vectorization, dtplyr for large data, and memory optimization
 - **[references/package-development.md](references/package-development.md)** — API design patterns for tidyverse-style package functions: dependency strategy, input validation, error handling, and naming conventions. For devtools workflow, testing commands, roxygen2 documentation, and NEWS.md conventions, defer to the r-package-development skill
 - **[references/object-systems.md](references/object-systems.md)** — S3, S4, S7, R6, and vctrs: decision matrix for choosing an object system, class definitions, and migration strategies
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

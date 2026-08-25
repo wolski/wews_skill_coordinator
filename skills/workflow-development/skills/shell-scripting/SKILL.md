@@ -144,3 +144,11 @@ When user specifies Zsh:
 ## Quick Reference Template
 
 See references/template.sh for a complete, production-ready script template with all best practices incorporated.
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

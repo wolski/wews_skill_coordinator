@@ -173,3 +173,11 @@ same thing. A clean linter result obtained through ignores, aliases, or indirect
 - Claiming Ruff enforces the rule.
 - Keeping old and new paths alive through broad re-exports.
 - Refactoring the whole repository when one bounded package can establish the new rule first.
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

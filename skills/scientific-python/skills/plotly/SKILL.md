@@ -944,3 +944,11 @@ fig = px.scatter(df, x="x", y="y", render_mode="webgl")
 # Or reduce data points
 fig = px.scatter(df.sample(10000), x="x", y="y")
 ```
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

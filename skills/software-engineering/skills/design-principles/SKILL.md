@@ -172,3 +172,11 @@ worklist.
 that cannot name the bound it clears is not a finding — for principle 1 that means naming the plausible
 second implementation; for principle 2 it means showing the branch is on *what something is*, not on *what
 happened*.
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

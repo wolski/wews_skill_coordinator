@@ -128,3 +128,11 @@ A detailed end-to-end case — a real review finding that was a false positive o
 checks that refuted it, the one genuine narrow bug it masked, and the structural rewrite that removed the
 confusion — is in [references/false-positive-case-study.md](references/false-positive-case-study.md). Read it
 for a concrete model of the whole loop: refute → classify → restructure → test-first → lock.
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

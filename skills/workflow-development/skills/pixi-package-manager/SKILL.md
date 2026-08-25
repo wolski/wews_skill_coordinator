@@ -1284,3 +1284,11 @@ Pixi revolutionizes scientific Python development by unifying conda and PyPI eco
 Whether you're conducting reproducible research, developing scientific software, or managing complex data analysis pipelines, pixi provides the robust foundation for modern scientific Python development. By replacing conda/mamba with pixi, you gain speed, reliability, and modern workflows while maintaining full access to the scientific Python ecosystem.
 
 **Ready to get started?** Install pixi, initialize your project with `pixi init --format pyproject`, and experience the future of scientific Python package management.
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

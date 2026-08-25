@@ -151,3 +151,11 @@ Do not modify any source files. This skill is read-only review; the `fix_prompt`
 - If the diff is huge (>50 files or >2000 lines), ask the user whether to review everything or focus on a subset before spawning agents — specialists waste context on noise otherwise.
 - If a specialist returns no findings, that is a valid result. Don't prompt it to invent issues.
 - If specialists disagree (e.g., GoF says "apply Strategy", antipattern says "Golden Hammer"), surface the disagreement explicitly in the lead architect's report rather than silently picking a winner.
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

@@ -167,3 +167,11 @@ truncation, `inspect_job` running/finished transitions (`poll()` returning `None
 and that a running panel shows the refresh widget and no download while a finished panel shows the
 download. The panel renders from a plain `JobStatus`, so assert on its structure without a browser.
 See MetaboStatsHub `tests/test_prolfqua_runner.py` and `tests/test_job_status.py`.
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.

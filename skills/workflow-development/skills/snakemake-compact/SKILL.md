@@ -222,3 +222,11 @@ snakemake --rerun-incomplete -j 1   # Redo jobs with incomplete/partial outputs
 6. **KISS**: Simple rules, modular helper functions
 7. **Deterministic outputs**: Avoid timestamps in output filenames
 8. **Declare real deps**: values a `run:`/`shell:` block reads from `config` or module globals are invisible to rerun-detection unless wired into `input:`/`params:` — otherwise generated outputs go stale (clean with `--delete-all-output`).
+
+## Improve this skill from use
+
+After completing a task with this skill, reflect on whether its instructions or resources revealed a
+gap, ambiguity, stale instruction, avoidable friction, or error. If concrete evidence surfaced, include
+a brief `Skill feedback` note in the handoff or final response that names the affected file or section
+and proposes the smallest useful correction. Do not invent feedback when no issue surfaced, and do not
+edit the skill during an unrelated task without the user's authorization.
