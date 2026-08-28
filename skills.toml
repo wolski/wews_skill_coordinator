@@ -5,8 +5,16 @@
 [plugins.claude-plugins-official]
 names = ["code-simplifier", "claude-md-management", "code-review", "hookify"]
 
-[package_options."wolski/wews_skill_coordinator"]
-full_depth = true
+# Packages installed from a working copy on this machine. Their skills are
+# symlinked, so editing the source is live at once for Claude Code and Codex.
+# Every package absent from this table is installed with the pinned npx CLI.
+[sources."wolski/wews_skill_coordinator"]
+path = "skills"
+owned = true
+
+[sources."fgcz/skills"]
+path = "repos/fgcz-skills"
+git_url = "https://github.com/fgcz/skills.git"
 
 [profiles.full]
 description = "Every configured skill profile."

@@ -1,17 +1,23 @@
 # AGENTS.md
 
 This repository owns Wolski-authored skills and coordinates their installation
-alongside authoritative third-party skills. The pinned `npx skills` CLI installs
-configured profiles for Claude Code and Codex.
+alongside authoritative third-party skills. Packages declared under `[sources]`
+in `skills.toml` are symlinked from a working copy on this machine; every other
+package is installed with the pinned `npx skills` CLI. Both kinds land in the
+same layout, for Claude Code and Codex.
 
 Precedence: the closest `AGENTS.md` wins and applies to its subtree.
 
 ## Rules
 
 - Do not edit installed skill files under `~/.agents`, `~/.claude`, or `~/.codex`.
-- Edit personal skill source under `skills/<category>/skills/<skill>/`, commit and
-  push it here, then run `make update` or switch profiles to reinstall it.
-- Treat third-party skill sources as read-only.
+  For a local source those paths are symlinks into a checkout, so editing them
+  edits the source by accident and outside version control.
+- Edit personal skill source under `skills/<category>/skills/<skill>/`. It is
+  symlinked, so the change is live at once; commit and push it here as usual.
+- Treat third-party skill sources as read-only, except `repos/fgcz-skills`, which
+  is a checkout the user commits to. Never switch, reset, or clean a source
+  checkout on the user's behalf.
 - Before adding a personal skill in an FGCZ domain, inspect `fgcz/skills`. Reuse a
   duplicate, contribute missing institutional guidance there, or state a narrow
   non-overlapping responsibility.
@@ -27,15 +33,20 @@ Precedence: the closest `AGENTS.md` wins and applies to its subtree.
 ## Workflow
 
 1. `make install` or `make switch PROFILE=...` resolves a profile in `skills.toml`.
-2. Selected skills are installed directly with the pinned npx CLI for Claude Code
-   and Codex.
-3. Configured skills outside the profile are removed only after additions succeed.
-4. `make update` delegates installed-skill updates to npx.
+2. A skill that changed installation kind loses its old entry first. Remaining
+   npx packages are installed, then local skills are symlinked into
+   `~/.agents/skills/<name>` with a `~/.claude/skills/<name>` link beside them.
+3. Configured skills outside the profile are removed only after additions succeed:
+   npx names through the CLI, local names by unlinking.
+4. `make clone` fetches missing source checkouts; `make update` updates npx skills
+   and fast-forwards each checkout that declares a `git_url`.
 
 Add skills directly to topical profiles as `owner/repository@skill-name`; `full`
 includes all profiles automatically. Compose named profiles with `includes`. Add
-`[package_options."owner/repository"]` only when the package requires an npx option
-such as `full_depth = true`.
+`[package_options."owner/repository"]` only when an npx-installed package requires
+an option such as `full_depth = true`; it may not name a source. Add
+`[sources."owner/repository"]` to install a package from a local checkout, with
+`owned = true` only when this repository owns the skills.
 
 ## Verification
 
@@ -46,3 +57,5 @@ such as `full_depth = true`.
   test_skill_coordinator.py`.
 - Validate changed skills with the skill creator's `quick_validate.py` and run
   their deterministic evals or smoke tests when present.
+- Preview a profile change with `make dry-run PROFILE=...` before switching; a
+  dry run must write nothing and must report the same actions a real run takes.

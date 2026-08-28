@@ -1,34 +1,66 @@
 # Skills Coordinator
 
 Manages switchable Claude Code and Codex skill profiles declared in `skills.toml`.
-Every skill is installed directly from its GitHub repository with the pinned
-[`skills`](https://github.com/vercel-labs/skills) npx CLI. There is no coordinator
-skill cache and no coordinator-owned skill symlink layer.
+Installation is mixed by design:
 
-Wolski-owned skill source lives in this repository. Third-party skills remain at
-their authoritative upstream repositories. Claude plugins remain delegated to
-Claude's plugin manager.
+- Packages declared under `[sources]` are installed from a working copy on this
+  machine as **symlinks**. Editing the source is live at once for both agents —
+  no commit, push, or reinstall in between.
+- Every other package is installed from its GitHub repository with the pinned
+  [`skills`](https://github.com/vercel-labs/skills) npx CLI.
+
+Wolski-owned skill source lives in this repository and is therefore a local
+source. `fgcz/skills` is a private repository the user commits to, so it is
+installed from its `repos/fgcz-skills` checkout rather than fetched. Claude
+plugins remain delegated to Claude's plugin manager.
 
 ## Quick start
 
 ```bash
+make clone                           # fetch missing source checkouts
 make install                         # install the full profile
 make profiles                        # show available profiles
 make switch PROFILE=python-design    # activate a smaller profile
-make update                          # update npx skills
+make update                          # update npx skills and pull checkouts
 ```
 
 A switch installs every selected package first. Only after all installs succeed
 does it remove configured skills outside the selected profile. Skills not declared
 in `skills.toml` are left alone.
 
+## Install layout
+
+Both install kinds produce the same layout, which is the one npx already uses:
+
+```text
+~/.agents/skills/<skill>     shared store, read directly by Codex
+                             npx: a real directory
+                             local source: a symlink into this machine's checkout
+~/.claude/skills/<skill>  ->  ../../.agents/skills/<skill>
+```
+
+Nothing is written to `~/.codex/skills`; the npx CLI classifies Codex as a
+universal agent that reads the shared store. Coordinator-installed entries are
+identified structurally — a symlink in the store that resolves inside a
+configured source root — so no extra state file is kept and
+`~/.agents/.skill-lock.json` stays npx-owned. An entry that is not
+coordinator-managed is reported as `CONFLICT` and never overwritten.
+
 ## Configuration
 
-Profiles are the authoritative skill inventory. Each entry combines its GitHub
-package and exact npx skill name as `owner/repository@skill`.
+Profiles are the authoritative skill inventory. Each entry combines its package
+and exact skill name as `owner/repository@skill`, whichever way it is installed.
 
 ```toml
-[package_options."wolski/wews_skill_coordinator"]
+[sources."wolski/wews_skill_coordinator"]
+path = "skills"
+owned = true
+
+[sources."fgcz/skills"]
+path = "repos/fgcz-skills"
+git_url = "https://github.com/fgcz/skills.git"
+
+[package_options."pproenca/dot-skills"]
 full_depth = true
 
 [profiles.python-design]
@@ -37,13 +69,6 @@ skills = [
     "wolski/wews_skill_coordinator@python-style-guide",
     "wolski/wews_skill_coordinator@design-principles",
     "wolski/wews_skill_coordinator@polymorphism-over-discrimination",
-    "pproenca/dot-skills@clean-architecture",
-]
-
-[profiles.python-design-public]
-description = "Public Python design-pattern and Clean Architecture guidance, without Wolski skills."
-skills = [
-    "wshobson/agents@python-design-patterns",
     "pproenca/dot-skills@clean-architecture",
 ]
 
@@ -58,12 +83,32 @@ includes = ["*"]
 ```
 
 Every profile has a human-readable `description`, shown by `make profiles`.
-The coordinator groups entries from the same package into one npx command. The
+The coordinator groups npx entries from the same package into one command. The
 `includes` field composes named profiles, while `includes = ["*"]` composes every
 other profile. The `full` profile therefore contains no direct skills. Cleanup
-uses the union of every direct profile entry. A package-options entry is needed
-only for npx behavior such as `--full-depth`, not for skill membership. A skill
-name may have only one package owner.
+uses the union of every direct profile entry. A skill name may have only one
+package owner.
+
+### Adding a folder as a source
+
+One `[sources]` block plus profile entries is the whole change:
+
+| field | meaning |
+| --- | --- |
+| `path` | root of the checkout, relative to this repository |
+| `owned` | `true` only for skills this repository owns; the tree must then match `skills.toml` exactly, in both directions |
+| `git_url` | optional; enables `make clone` and the pull in `make update` |
+
+Skills are discovered at `<category>/skills/<name>/SKILL.md` under the root, and
+the frontmatter `name` must equal the directory name. In an `owned` source
+anything off that pattern is an error. In a third-party checkout it is simply not
+a skill this repository installs, because such a checkout legitimately carries
+far more skills than any profile selects.
+
+A source may be absent — not cloned yet, or on a branch that predates a skill. That
+is not a configuration error: `make clone` fetches it, and `make install` reports
+each configured skill its checkout does not carry as `MISSING` and exits non-zero.
+`[package_options]` applies to npx behavior only and may not name a source.
 
 ## Owned skill source
 
@@ -87,22 +132,39 @@ duplicate there, contribute missing institutional behavior upstream, or define a
 clearly non-overlapping personal responsibility. Do not keep two broad owners for
 the same workflow.
 
+## Source checkouts
+
+The coordinator never switches, resets, or cleans a source checkout — those are
+working copies you commit from. It reports their state instead: `make list` prints
+each source's branch, short HEAD, and how far behind its upstream it is, so a
+checkout parked on a feature branch is visible rather than silent. What is
+installed is whatever that branch currently holds.
+
+`make update` fast-forwards each source that declares a `git_url` and warns
+instead of failing when a pull does not apply, so one dirty checkout cannot block
+the rest.
+
 ## Commands
 
 ```text
+make clone           Clone missing source checkouts declared with a git_url
 make install         Install PROFILE (default: full)
-make switch          Switch the direct npx installation to PROFILE
+make switch          Switch the installation to PROFILE
 make profiles        List configured profiles
-make update          Update global npx skills
-make clean           Remove only configured skills
-make list            List installed skills and matching profile
-make audit           Compare installed skill hashes with review records
+make update          Update npx skills and fast-forward source checkouts
+make clean           Remove configured npx skills and every coordinator symlink
+make list            Show source state, installed skills by kind, matching profile
+make audit           Compare installed skill content with review records
 make dry-run         Preview a profile switch
 make test            Run the test suite
 make plugins         Install configured Claude plugins
 make plugins-remove  Uninstall configured Claude plugins
 make plugins-list    List installed Claude plugins
 ```
+
+`make audit` compares npx skills against the folder hash in the npx lock file and
+local skills against the last commit touching the skill directory in its own
+repository, both against `last_reviewed_sha:` in `.kairos/knowledge/`.
 
 The Makefile delegates to the typed Cyclopts CLI in `skill_coordinator.py`. The
 npx version is pinned there so installation behavior does not silently change.
