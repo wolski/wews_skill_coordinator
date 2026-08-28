@@ -192,3 +192,30 @@ source first, then a source checkout) and measures the others against it.
 Symlinked directories are not descended into. One pointing at the home directory
 or at an ancestor of the scan root is named in the report rather than followed,
 and a file that cannot be read is listed as unread rather than counted as absent.
+
+## Claude memory
+
+`make memory` inventories Claude Code's per-project memory under
+`~/.claude/projects/<slug>/memory/` and says which stores can go.
+
+```bash
+make memory                     # report only
+make memory-prune DRY_RUN=1     # show what would be deleted
+make memory-prune               # delete it
+```
+
+A store's slug is the project's absolute path with every separator flattened to
+`-`, which swallows any `_`, `.` or `-` already in the name. It cannot be
+inverted by substitution, so each slug is resolved against the filesystem by
+search: `-Users-wolski-projects-wews-skill-coordinator` finds
+`/Users/wolski/projects/wews_skill_coordinator`.
+
+A slug that resolves nowhere means one of two things, and they are not the same.
+The project may be **deleted**, or merely **moved** — so the leaf name is looked
+for elsewhere first, skipping dot-directories and caches. Only a store with no
+resolution and no relocation candidate is called removable, and only those are
+ever deleted. Everything else is reported and kept.
+
+The scan also flags facts absent from `MEMORY.md` (nothing will recall them),
+`[[links]]` and index entries pointing at missing files, empty stores, and
+anything untouched past `--stale-days` (default 90).

@@ -28,10 +28,13 @@ Precedence: the closest `AGENTS.md` wins and applies to its subtree.
 - Coordinator behavior, and every CLI command, belongs in `skill_coordinator.py`
   and `test_skill_coordinator.py`. The read-only inventory scan belongs in
   `skill_bookkeeping.py` and `test_skill_bookkeeping.py`; it never installs,
-  moves, or deletes anything.
-- `skill_coordinator` imports `skill_bookkeeping`, never the reverse. The
-  coordinator owns `skills.toml` and the CLI, so it builds the `Coordinator`
-  view the scan consumes; the scan imports nothing from this repository.
+  moves, or deletes anything. The Claude memory inventory belongs in
+  `claude_memory.py` and `test_claude_memory.py`; it deletes only under `--prune`,
+  and only a store whose project cannot be found anywhere.
+- `skill_coordinator` imports `skill_bookkeeping` and `claude_memory`, never the
+  reverse, and those two never import each other. The coordinator owns
+  `skills.toml` and the CLI, so it builds the `Coordinator` view the skill scan
+  consumes; neither scan imports anything from this repository.
 - Configuration, command aliases, and documentation belong in `skills.toml`,
   `Makefile`, `README.md`, `AGENTS.md`, and `CLAUDE.md`.
 
@@ -48,6 +51,9 @@ Precedence: the closest `AGENTS.md` wins and applies to its subtree.
 5. `make bookkeeping`, or `skill_coordinator.py bookkeeping ROOT`, scans for every
    `SKILL.md`, records whether each is a real file, a symlink, or an alias, and
    who manages it, then writes a CSV, a Markdown report, and an HTML rendering.
+6. `make memory` reports Claude Code's per-project memory stores the same way,
+   resolving each slug back to a directory. `make memory-prune` removes only the
+   stores nothing claims; `DRY_RUN=1` previews and must write nothing.
 
 Add skills directly to topical profiles as `owner/repository@skill-name`; `full`
 includes all profiles automatically. Compose named profiles with `includes`. Add

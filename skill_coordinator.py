@@ -21,6 +21,7 @@ except ModuleNotFoundError:
 import cyclopts
 from pydantic import BaseModel, Field, model_validator
 
+import claude_memory
 import skill_bookkeeping
 
 app = cyclopts.App(
@@ -37,6 +38,8 @@ NPX_LOCK = Path.home() / ".agents" / ".skill-lock.json"
 KAIROS_KNOW_DIR = ROOT / ".kairos" / "knowledge"
 SCAN_ROOT = Path.home() / "projects"
 BOOKKEEPING_OUT = ROOT / "TODO" / "skill_bookkeeping"
+MEMORY_ROOT = Path.home() / ".claude" / "projects"
+MEMORY_OUT = ROOT / "TODO" / "claude_memory"
 
 # Claude Code reads its own directory; npx points it at the shared store with
 # exactly this relative link, and locally installed skills match that layout.
@@ -889,6 +892,45 @@ def bookkeeping(
     out = out.expanduser()
     out.parent.mkdir(parents=True, exist_ok=True)
     skill_bookkeeping.run(root, out, read_coordinator(load_config()), html=html)
+
+
+@app.command
+def memory(
+    root: Path = MEMORY_ROOT,
+    *,
+    out: Path = MEMORY_OUT,
+    stale_days: int = 90,
+    html: bool = True,
+    prune: bool = False,
+    dry_run: bool = False,
+) -> None:
+    """Inventory Claude Code's per-project memory store and flag what can go.
+
+    Resolves each store's slug back to a real directory, so a store left behind by
+    a renamed, moved, or deleted project is named exactly. Writes a CSV, a Markdown
+    report, and an HTML rendering. Reads only, unless --prune is given.
+
+    Args:
+        root: Memory store to scan, one directory per project slug.
+        out: Output path without a suffix; .csv, .md and .html are added.
+        stale_days: Age in days past which an untouched memory is called stale.
+        html: Render the Markdown report to HTML. Needs the markdown package.
+        prune: Delete every store whose project directory no longer exists.
+        dry_run: With --prune, report the deletions without making them.
+    """
+    root = root.expanduser().resolve()
+    if not root.is_dir():
+        raise SystemExit(f"not a directory: {root}")
+    out = out.expanduser()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    claude_memory.run(
+        root,
+        out,
+        stale_days=stale_days,
+        html=html,
+        prune_missing=prune,
+        dry_run=dry_run,
+    )
 
 
 @app.command

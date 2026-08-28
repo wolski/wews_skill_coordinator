@@ -3,8 +3,10 @@ PY := uv run --with cyclopts --with pydantic --with tomli --with markdown python
 PROFILE ?= full
 SCAN_ROOT ?= $(HOME)/projects
 BOOK_OUT ?= TODO/skill_bookkeeping
+MEMORY_ROOT ?= $(HOME)/.claude/projects
+MEMORY_OUT ?= TODO/claude_memory
 
-.PHONY: help clone update install switch profiles clean list audit bookkeeping plugins plugins-remove plugins-list dry-run test
+.PHONY: help clone update install switch profiles clean list audit bookkeeping memory memory-prune plugins plugins-remove plugins-list dry-run test
 
 help: ## Show this help
 	@echo "Claude Code Skills Coordinator"
@@ -22,6 +24,9 @@ help: ## Show this help
 	@echo "  PROFILE          profile for install/switch/dry-run (now: $(PROFILE))"
 	@echo "  SCAN_ROOT        folder bookkeeping scans (now: $(SCAN_ROOT))"
 	@echo "  BOOK_OUT         bookkeeping output prefix (now: $(BOOK_OUT))"
+	@echo "  MEMORY_ROOT      Claude memory store (now: $(MEMORY_ROOT))"
+	@echo "  MEMORY_OUT       memory report prefix (now: $(MEMORY_OUT))"
+	@echo "  DRY_RUN          set to preview memory-prune"
 	@echo ""
 	@$(PY) --help
 
@@ -52,6 +57,12 @@ audit: ## Report skills whose content changed since review
 bookkeeping: ## Scan SCAN_ROOT for SKILL.md files; write CSV, Markdown, and HTML
 	@$(PY) bookkeeping "$(SCAN_ROOT)" --out "$(BOOK_OUT)"
 
+memory: ## Inventory Claude's memory store; write CSV, Markdown, and HTML
+	@$(PY) memory "$(MEMORY_ROOT)" --out "$(MEMORY_OUT)"
+
+memory-prune: ## Delete memory stores nothing claims (DRY_RUN=1 to preview)
+	@$(PY) memory "$(MEMORY_ROOT)" --out "$(MEMORY_OUT)" --prune $(if $(DRY_RUN),--dry-run,)
+
 plugins: ## Install plugins from marketplace
 	@$(PY) plugins install-plugins
 
@@ -66,4 +77,5 @@ dry-run: ## Preview a profile switch without making changes
 
 test: ## Run test suite
 	@uv run --with cyclopts --with pydantic --with tomli --with pytest --with markdown \
-		python -m pytest test_skill_coordinator.py test_skill_bookkeeping.py -v
+		python -m pytest test_skill_coordinator.py test_skill_bookkeeping.py \
+			test_claude_memory.py -v
