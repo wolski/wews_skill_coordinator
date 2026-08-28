@@ -17,13 +17,14 @@ include_external_packages = True
 
 Do not add a second wrapper script when the existing task runner can call `lint-imports` directly.
 
-## Parent with independent children
+## Parent with directed children
 
-Suppose the parent contains four composition/application modules and three independent children:
+Suppose the parent contains four composition/application modules and three children. `parsing` may
+depend on `rules`; `vendor_parameters` is independent:
 
 ```ini
 [importlinter:contract:acme-directory-tree]
-name = acme children never import upward or sideways
+name = acme children follow the directed folder graph
 type = layers
 exhaustive = True
 containers =
@@ -33,15 +34,22 @@ layers =
     detect
     compile
     facade
-    parsing | rules | vendor_parameters
+    parsing | vendor_parameters
+    rules
 ```
 
-Layers are written from outer/highest to inner/lowest. Modules on one `|` line are independent:
-none may import another. Order parent modules only when that dependency is intentional; use `|`
-for parent modules that should also remain independent.
+Layers are written from outer/highest to inner/lowest. This permits `parsing -> rules`, forbids
+`rules -> parsing`, and keeps packages on one `|` line independent. Order parent modules only when
+that dependency is intentional; use `|` for parent modules that should also remain independent.
 
 `exhaustive = True` is important. A new top-level module must be assigned deliberately rather than
 silently escaping the contract.
+
+This particular contract encodes the intended edge exactly: packages on the same `|` line remain
+independent, and `rules` is the one lower sibling target available to `parsing`. In a larger DAG,
+however, a layers contract permits a package to import every sibling on every lower line. It does
+not state the repository-wide maximum-one invariant by itself, and a later layer insertion can
+silently widen the available targets. Pair it with the focused direct-edge check below.
 
 ## Nested child tree
 
@@ -89,11 +97,51 @@ Set `include_external_packages = True` when checking third-party imports.
 Use `allow_indirect_imports = True` only when the architectural statement is genuinely about
 reachability, not to make a direct-edge contract look stronger than intended.
 
+## Enforce at most one sibling dependency
+
+Import Linter proves the declared direction, but its layers contract does not constrain a package's
+out-degree. Add a focused architecture test using Import Linter's underlying Grimp graph:
+
+```python
+from pathlib import PurePosixPath
+
+import grimp
+
+
+def test_each_child_depends_on_at_most_one_sibling() -> None:
+    graph = grimp.build_graph("acme")
+    children = {"acme.parsing", "acme.rules", "acme.vendor_parameters"}
+
+    for child in children:
+        child_modules = {
+            module
+            for module in graph.modules
+            if module == child or module.startswith(f"{child}.")
+        }
+        imported_modules = set().union(
+            *(graph.find_modules_directly_imported_by(module) for module in child_modules)
+        )
+        imported_siblings = {
+            sibling
+            for sibling in children - {child}
+            if any(
+                imported == sibling or imported.startswith(f"{sibling}.")
+                for imported in imported_modules
+            )
+        }
+        assert len(imported_siblings) <= 1, (child, imported_siblings)
+```
+
+Adapt the graph query to the installed Grimp version and test it against a deliberately invalid
+fixture before trusting it. Count direct sibling-package targets, not transitive reachability: the
+valid chain `B -> C -> D` gives `B` one direct sibling target, not two.
+
 ## What Import Linter does not replace
 
 Use a focused architecture test for facts such as:
 
-- only `compile.py` and `facade.py` may import two independent children;
+- which parent modules may compose several children;
+- the maximum-one direct sibling target invariant above;
 - the CLI imports only the application facade;
 - package `__init__.py` files remain empty;
 - a runtime module does not inspect schema discriminator strings;
@@ -120,4 +168,3 @@ If the entire legacy package cannot pass immediately:
 
 The contract should be merge-blocking once its scoped package passes. Diagnostic graph counts may
 remain non-blocking gauges; they are not substitutes for the explicit law.
-

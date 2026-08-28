@@ -16,9 +16,9 @@ Baseline: 412 tests pass; import-linter is not installed
 
 | From | To | Class | Why it exists now |
 | --- | --- | --- | --- |
-| `acme/parsing/parser.py` | `acme/rules/model.py` | sideways | parser receives storage schema |
+| `acme/parsing/parser.py` | `acme/rules/model.py` | sibling edge | parser receives storage schema |
 | `acme/rules/loader.py` | `acme/configure.py` | upward | loader asks parent to construct runtime rules |
-| `acme/output/writer.py` | `acme/parsing/parser.py` | excess knowledge | writer reaches through parsed result |
+| `acme/output/writer.py` | `acme/parsing/parser.py` | second sibling target | writer already imports data |
 ```
 
 Distinguish direct imports from indirect reachability. The migration changes direct ownership
@@ -46,7 +46,8 @@ Then state the graph:
 ```text
 acme/*.py -> rules | parsing | vendor_parameters
 rules -X-> parsing | vendor_parameters | acme/*.py
-parsing -X-> rules | vendor_parameters | acme/*.py
+parsing -> rules
+parsing -X-> vendor_parameters | acme/*.py
 vendor_parameters -X-> rules | parsing | acme/*.py
 ```
 
@@ -67,9 +68,14 @@ Ask which parent value the child actually needs.
 
 Do not create `parent_types.py` and keep the upward import.
 
-### Sibling imports sibling
+### Sibling imports one sibling
 
-Name the operation the importing child needs.
+One declared `B -> C` edge is valid when `C -X-> B` and `B` has no other direct sibling target.
+Keep the import if `B` genuinely owns the workflow that consumes `C` and the edge matches the
+declared folder DAG.
+
+Use parent composition and injection when the direct edge would create a cycle or a second sibling
+dependency:
 
 ```python
 # B/ports.py — B owns the capability it consumes.
@@ -87,9 +93,9 @@ class EmailNotifier:
 service = OrderService(notifier=EmailNotifier(...))
 ```
 
-If the event type itself would create a sibling import, pass a consumer-owned value or have the
-parent translate between the children. If translation becomes large, the supposed siblings likely
-belong to different levels or one cohesive component.
+If the event type itself would create a reverse import, pass a consumer-owned value or have the
+parent translate between the children. If `B` owns both collaborators, another valid correction is
+to nest those collaborators under `B`; modules directly in `B/` can then compose its children.
 
 ### Parent module belongs to one child
 
@@ -133,7 +139,8 @@ clean in one commit. Existing legacy violations are recorded islands, not permis
 Ask these after every slice:
 
 - Does every moved module have one owner?
-- Can any child reach a parent or sibling, directly or indirectly?
+- Can any child reach a parent?
+- Do sibling edges form a DAG, and does every child directly target at most one sibling package?
 - Is the parent doing composition/translation, or merely forwarding?
 - Did a broad config/facade cross a boundary where a small value would suffice?
 - Did a compatibility wrapper preserve an internal path nobody promised publicly?

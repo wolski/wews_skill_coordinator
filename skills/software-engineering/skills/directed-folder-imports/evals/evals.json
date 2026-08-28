@@ -4,11 +4,11 @@
     {
       "id": 1,
       "prompt": "Our Python package grew without an architecture. Under src/shop, orders/service.py imports shop/app.py and notifications/email.py; notifications/email.py imports orders/model.py; shop/helpers.py is used only by orders. Please inspect the project, propose a safe migration plan, implement it after approval, and enforce the result in CI.",
-      "expected_output": "An evidence-first migration that moves orders-owned code inward, removes sibling/upward imports through parent composition and injection, preserves public behavior, and adds scoped Import Linter contracts plus verification.",
+      "expected_output": "An evidence-first migration that moves orders-owned code inward, removes upward and cyclic sibling imports, limits every child to one direct sibling dependency through ownership or parent composition, preserves public behavior, and adds scoped Import Linter contracts plus verification.",
       "files": [],
       "expectations": [
         "Inspects the existing import graph, public APIs, tests, and worktree before moving files.",
-        "Places genuine orders-notifications composition in the parent rather than either child.",
+        "Places genuine orders-notifications composition in the parent when a direct edge would create a reverse edge or second sibling dependency.",
         "Moves helpers.py into orders because it has one owner.",
         "Does not introduce shared/utils carpets or compatibility forwarding modules by default.",
         "Adds Import Linter to the normal project check and uses focused tests only for extra invariants."
@@ -21,7 +21,7 @@
       "files": [],
       "expectations": [
         "States that Ruff cannot express the complete arbitrary folder graph.",
-        "Uses an exhaustive layers contract with rules and parsing as independent siblings.",
+        "Uses an exhaustive layers contract for the declared sibling direction and a focused check for at most one direct sibling target.",
         "Uses a focused test for the exact modules allowed to know both children.",
         "Scopes initial enforcement to migrated code and rejects blanket exclusions.",
         "Wires lint-imports into an existing lint/check or CI command without an unnecessary wrapper."
