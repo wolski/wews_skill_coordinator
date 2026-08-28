@@ -1,8 +1,11 @@
 SHELL := /bin/bash
 PY := uv run --with cyclopts --with pydantic --with tomli python skill_coordinator.py
+BOOK := uv run --with cyclopts --with pydantic --with tomli --with markdown python skill_bookkeeping.py
 PROFILE ?= full
+SCAN_ROOT ?= $(HOME)/projects
+BOOK_OUT ?= TODO/skill_bookkeeping
 
-.PHONY: help clone update install switch profiles clean list audit plugins plugins-remove plugins-list dry-run test
+.PHONY: help clone update install switch profiles clean list audit bookkeeping plugins plugins-remove plugins-list dry-run test
 
 help: ## Show this help
 	@echo "Claude Code Skills Coordinator"
@@ -37,6 +40,9 @@ list: ## Show source checkouts, installed skills by kind, and matching profile
 audit: ## Report skills whose content changed since review
 	@$(PY) audit
 
+bookkeeping: ## Scan SCAN_ROOT for SKILL.md files; write CSV, Markdown, and HTML
+	@$(BOOK) "$(SCAN_ROOT)" --out "$(BOOK_OUT)"
+
 plugins: ## Install plugins from marketplace
 	@$(PY) plugins install-plugins
 
@@ -50,4 +56,5 @@ dry-run: ## Preview a profile switch without making changes
 	@$(PY) switch --profile "$(PROFILE)" --dry-run
 
 test: ## Run test suite
-	@uv run --with cyclopts --with pydantic --with tomli --with pytest python -m pytest test_skill_coordinator.py -v
+	@uv run --with cyclopts --with pydantic --with tomli --with pytest --with markdown \
+		python -m pytest test_skill_coordinator.py test_skill_bookkeeping.py -v

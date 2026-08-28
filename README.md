@@ -168,3 +168,26 @@ repository, both against `last_reviewed_sha:` in `.kairos/knowledge/`.
 
 The Makefile delegates to the typed Cyclopts CLI in `skill_coordinator.py`. The
 npx version is pinned there so installation behavior does not silently change.
+
+## Bookkeeping
+
+`make bookkeeping` inventories every `SKILL.md` under a folder and says how each
+one is held and who manages it. It only reads.
+
+```bash
+make bookkeeping                                   # scans ~/projects
+make bookkeeping SCAN_ROOT=~/work BOOK_OUT=/tmp/x  # anywhere, anywhere
+```
+
+It writes three files from one scan: `<BOOK_OUT>.csv` with a row per file for
+filtering, `<BOOK_OUT>.md` grouped by verdict, and `<BOOK_OUT>.html` rendered
+from that Markdown.
+
+Each row records how the file is held — `real-file`, `symlinked-file`, or
+`via-symlinked-dir` — so a copy is never mistaken for a view of a source. Where a
+skill exists in several places, the scan picks the authoritative copy (owned
+source first, then a source checkout) and measures the others against it.
+
+Symlinked directories are not descended into. One pointing at the home directory
+or at an ancestor of the scan root is named in the report rather than followed,
+and a file that cannot be read is listed as unread rather than counted as absent.

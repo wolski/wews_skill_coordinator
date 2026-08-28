@@ -26,7 +26,9 @@ Precedence: the closest `AGENTS.md` wins and applies to its subtree.
 - Category folders are organizational source boundaries, not Claude plugins. The
   repository root composes them through `skills.toml`.
 - Coordinator behavior belongs in `skill_coordinator.py` and
-  `test_skill_coordinator.py`.
+  `test_skill_coordinator.py`. The read-only inventory scan belongs in
+  `skill_bookkeeping.py` and `test_skill_bookkeeping.py`; it reads the
+  coordinator's config and never installs, moves, or deletes anything.
 - Configuration, command aliases, and documentation belong in `skills.toml`,
   `Makefile`, `README.md`, `AGENTS.md`, and `CLAUDE.md`.
 
@@ -40,6 +42,9 @@ Precedence: the closest `AGENTS.md` wins and applies to its subtree.
    npx names through the CLI, local names by unlinking.
 4. `make clone` fetches missing source checkouts; `make update` updates npx skills
    and fast-forwards each checkout that declares a `git_url`.
+5. `make bookkeeping` scans `SCAN_ROOT` for every `SKILL.md`, records whether each
+   is a real file, a symlink, or an alias, and who manages it, then writes a CSV,
+   a Markdown report, and an HTML rendering to `BOOK_OUT`.
 
 Add skills directly to topical profiles as `owner/repository@skill-name`; `full`
 includes all profiles automatically. Compose named profiles with `includes`. Add
@@ -51,10 +56,10 @@ an option such as `full_depth = true`; it may not name a source. Add
 ## Verification
 
 - Run `make test` after coordinator or profile changes.
-- Run `uvx ruff check skill_coordinator.py test_skill_coordinator.py`.
+- Run `uvx ruff check` over every module changed, and `make test` covers both
+  test files.
 - Run strict typing with `uv run --with cyclopts --with pydantic --with tomli
-  --with pytest --with pyright pyright skill_coordinator.py
-  test_skill_coordinator.py`.
+  --with pytest --with markdown --with pyright pyright <changed modules>`.
 - Validate changed skills with the skill creator's `quick_validate.py` and run
   their deterministic evals or smoke tests when present.
 - Preview a profile change with `make dry-run PROFILE=...` before switching; a
