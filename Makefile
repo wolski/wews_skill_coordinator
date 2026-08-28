@@ -1,6 +1,5 @@
 SHELL := /bin/bash
-PY := uv run --with cyclopts --with pydantic --with tomli python skill_coordinator.py
-BOOK := uv run --with cyclopts --with pydantic --with tomli --with markdown python skill_bookkeeping.py
+PY := uv run --with cyclopts --with pydantic --with tomli --with markdown python skill_coordinator.py
 PROFILE ?= full
 SCAN_ROOT ?= $(HOME)/projects
 BOOK_OUT ?= TODO/skill_bookkeeping
@@ -41,7 +40,7 @@ audit: ## Report skills whose content changed since review
 	@$(PY) audit
 
 bookkeeping: ## Scan SCAN_ROOT for SKILL.md files; write CSV, Markdown, and HTML
-	@$(BOOK) "$(SCAN_ROOT)" --out "$(BOOK_OUT)"
+	@$(PY) bookkeeping "$(SCAN_ROOT)" --out "$(BOOK_OUT)"
 
 plugins: ## Install plugins from marketplace
 	@$(PY) plugins install-plugins

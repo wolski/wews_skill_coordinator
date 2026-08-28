@@ -55,6 +55,7 @@ def coordinator(
         installed={},
         install_targets={},
         claude_links=frozenset(),
+        store=Path("/nonexistent-store"),
     )
 
 
@@ -344,6 +345,17 @@ class TestOutputs:
         text = render_markdown([], Path("/root"), "now", discovery)
         assert "a/SKILL.md" in text
         assert "denied" in text
+
+    def test_the_store_section_is_omitted_when_the_store_is_absent(self) -> None:
+        text = render_markdown([], Path("/root"), "now", Discovery(), None)
+        assert "Installed store" not in text
+
+    def test_the_store_section_names_symlinks_and_copies(self, tmp_path: Path) -> None:
+        (tmp_path / "copied").mkdir()
+        (tmp_path / "linked").symlink_to(tmp_path / "copied")
+        text = render_markdown([], Path("/root"), "now", Discovery(), tmp_path)
+        assert "| `linked` | symlink |" in text
+        assert "| `copied` | npx copy |" in text
 
     def test_the_html_page_is_self_contained(self) -> None:
         html = render_html("# Title\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n", "Report")

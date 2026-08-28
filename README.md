@@ -171,12 +171,13 @@ npx version is pinned there so installation behavior does not silently change.
 
 ## Bookkeeping
 
-`make bookkeeping` inventories every `SKILL.md` under a folder and says how each
-one is held and who manages it. It only reads.
+The `bookkeeping` command inventories every `SKILL.md` under a folder and says
+how each one is held and who manages it. It only reads.
 
 ```bash
 make bookkeeping                                   # scans ~/projects
-make bookkeeping SCAN_ROOT=~/work BOOK_OUT=/tmp/x  # anywhere, anywhere
+make bookkeeping SCAN_ROOT=~/work BOOK_OUT=/tmp/x  # any folder, any destination
+python skill_coordinator.py bookkeeping ~/work --out /tmp/x --no-html
 ```
 
 It writes three files from one scan: `<BOOK_OUT>.csv` with a row per file for

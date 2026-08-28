@@ -21,27 +21,9 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
-import cyclopts
-
-from skill_coordinator import (
-    AGENTS_SKILLS_DIR,
-    CLAUDE_SKILLS_DIR,
-    SkillsConfig,
-    all_skill_references,
-    load_config,
-    source_root,
-)
-
-app = cyclopts.App(
-    name="skill-bookkeeping",
-    help="Scan a folder for SKILL.md files and report how each one is held.",
-)
-
 SKILL_FILE = "SKILL.md"
 PRUNED_DIRS = frozenset({".git", ".hg", ".svn", "__pycache__", ".mypy_cache"})
 VENDOR_MARKERS = ("/site-packages/", "/node_modules/", "/dist-packages/")
-DEFAULT_ROOT = Path.home() / "projects"
-DEFAULT_OUT = Path("skill_bookkeeping")
 
 # Skills whose upstream name changed. Name matching alone would miss the pair.
 ALIASES = {"fgcz-quarto-reports": "fgcz-quarto-report-template"}
@@ -331,52 +313,10 @@ class Coordinator:
     installed: dict[str, str]
     install_targets: dict[str, Path]
     claude_links: frozenset[str]
+    store: Path
 
     def profiles_of(self, name: str) -> str:
         return ",".join(sorted(self.profiles.get(name, frozenset()))) or ""
-
-
-def read_coordinator(config: SkillsConfig) -> Coordinator:
-    """Collect the configured inventory and the live install state."""
-    profiles: dict[str, set[str]] = defaultdict(set)
-    packages: dict[str, str] = {}
-    for profile_name, profile in config.profiles.items():
-        for reference in all_skill_references(config):
-            if reference.identifier in profile.skills:
-                profiles[reference.name].add(profile_name)
-                packages[reference.name] = reference.package
-
-    owned: list[Path] = []
-    checkouts: list[Path] = []
-    for package, source in config.sources.items():
-        root = source_root(source)
-        (owned if source.owned else checkouts).append(root)
-        packages.setdefault(package, package)
-
-    installed: dict[str, str] = {}
-    targets: dict[str, Path] = {}
-    if AGENTS_SKILLS_DIR.is_dir():
-        for entry in AGENTS_SKILLS_DIR.iterdir():
-            if entry.is_symlink():
-                installed[entry.name] = "symlink"
-                targets[entry.name] = entry.resolve()
-            elif entry.is_dir():
-                installed[entry.name] = "npx-copy"
-                targets[entry.name] = entry
-    claude = (
-        frozenset(entry.name for entry in CLAUDE_SKILLS_DIR.iterdir())
-        if CLAUDE_SKILLS_DIR.is_dir()
-        else frozenset()
-    )
-    return Coordinator(
-        profiles={name: frozenset(values) for name, values in profiles.items()},
-        packages=packages,
-        owned_roots=tuple(owned),
-        checkout_roots=tuple(checkouts),
-        installed=installed,
-        install_targets=targets,
-        claude_links=claude,
-    )
 
 
 def _under(path: Path, roots: tuple[Path, ...]) -> bool:
@@ -693,24 +633,24 @@ def _counts(rows: list[Row], key: str) -> list[str]:
     return lines
 
 
-def render_store() -> list[str]:
+def render_store(store: Path) -> list[str]:
     """Describe the shared agent store, where the symlink-or-copy split is visible.
 
     The scan root holds sources; the store holds what the agents actually read. An
     entry there is either a symlink into a source checkout or a physical npx copy.
     """
-    if not AGENTS_SKILLS_DIR.is_dir():
+    if not store.is_dir():
         return []
     lines = [
         "## Installed store",
         "",
-        f"`{AGENTS_SKILLS_DIR}` — what Claude Code and Codex read. A symlink entry",
+        f"`{store}` — what Claude Code and Codex read. A symlink entry",
         "is live against its source; a directory entry is a copy fetched by npx.",
         "",
         "| Entry | Held as | Points at |",
         "| --- | --- | --- |",
     ]
-    for entry in sorted(AGENTS_SKILLS_DIR.iterdir(), key=lambda item: item.name):
+    for entry in sorted(store.iterdir(), key=lambda item: item.name):
         if entry.is_symlink():
             held, target = "symlink", os.readlink(entry)
         elif entry.is_dir():
@@ -722,7 +662,11 @@ def render_store() -> list[str]:
 
 
 def render_markdown(
-    rows: list[Row], root: Path, generated: str, discovery: Discovery
+    rows: list[Row],
+    root: Path,
+    generated: str,
+    discovery: Discovery,
+    store: Path | None = None,
 ) -> str:
     """Render the annotated rows as a Markdown report grouped by verdict."""
     out: list[str] = [
@@ -743,7 +687,7 @@ def render_markdown(
         "",
         *_counts(rows, "status"),
         "",
-        *render_store(),
+        *(render_store(store) if store else []),
     ]
     if discovery.skipped_links or discovery.unreadable:
         out += ["## Not covered by this scan", ""]
@@ -835,28 +779,13 @@ def render_html(markdown_text: str, title: str) -> str:
     )
 
 
-# ── Command ──────────────────────────────────────────────────────────
+# ── Entry point ──────────────────────────────────────────────────────
 
 
-@app.default
-def scan(
-    root: Path = DEFAULT_ROOT,
-    *,
-    out: Path = DEFAULT_OUT,
-    html: bool = True,
-) -> None:
-    """Scan ROOT for SKILL.md files and write the CSV, Markdown, and HTML report.
-
-    Args:
-        root: Folder to scan. Symlinked directories are recorded, not descended into.
-        out: Output path without a suffix; ``.csv``, ``.md``, and ``.html`` are added.
-        html: Render the Markdown report to HTML. Requires the ``markdown`` package.
-    """
-    root = root.expanduser().resolve()
-    if not root.is_dir():
-        raise SystemExit(f"not a directory: {root}")
-
-    coordinator = read_coordinator(load_config())
+def run(
+    root: Path, out: Path, coordinator: Coordinator, *, html: bool = True
+) -> list[Row]:
+    """Scan ``root``, write the CSV, Markdown and HTML reports, and return the rows."""
     discovery = discover(root)
     rows = annotate(root, coordinator, discovery)
     generated = _local(None).strftime("%Y-%m-%d %H:%M")
@@ -865,7 +794,7 @@ def scan(
     write_csv(rows, csv_path)
     print(f"  wrote {csv_path}  ({len(rows)} rows)")
 
-    markdown_text = render_markdown(rows, root, generated, discovery)
+    markdown_text = render_markdown(rows, root, generated, discovery, coordinator.store)
     markdown_path = out.with_suffix(".md")
     markdown_path.write_text(markdown_text)
     print(f"  wrote {markdown_path}")
@@ -885,7 +814,4 @@ def scan(
         print(f"  SKIPPED LINK  {link}  ({reason})")
     for path, error in discovery.unreadable:
         print(f"  UNREADABLE    {path}  ({error})")
-
-
-if __name__ == "__main__":
-    app()
+    return rows

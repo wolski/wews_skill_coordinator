@@ -26,6 +26,7 @@ from skill_coordinator import (
     managed_links,
     npx_skill_names,
     npx_store_names,
+    read_coordinator,
     remove_local_skill,
     resolve_profile,
     source_inventory,
@@ -815,6 +816,34 @@ class TestPlugins:
         monkeypatch.setattr(skill_coordinator.subprocess, "run", unexpected_run)
         skill_coordinator.install_plugins(dry_run=True)
         assert "plugin-a@market" in capsys.readouterr().out
+
+
+class TestReadCoordinator:
+    def test_the_scan_view_carries_profiles_sources_and_the_store(
+        self, configured: Path, tmp_path: Path
+    ) -> None:
+        view = read_coordinator(load_config())
+
+        assert view.profiles["python-style"] == frozenset({"full", "python", "python-style"})
+        assert view.packages["python-style"] == "owner/local"
+        assert view.owned_roots == (tmp_path / "skills",)
+        assert view.checkout_roots == ()
+        assert view.store == tmp_path / "store"
+
+    def test_an_installed_symlink_is_reported_with_its_resolved_target(
+        self, configured: Path, tmp_path: Path
+    ) -> None:
+        target = tmp_path / "skills" / "engineering" / "skills" / "python-style"
+        (tmp_path / "store" / "python-style").symlink_to(target)
+        (tmp_path / "store" / "clean-architecture").mkdir()
+
+        view = read_coordinator(load_config())
+
+        assert view.installed == {
+            "python-style": "symlink",
+            "clean-architecture": "npx-copy",
+        }
+        assert view.install_targets["python-style"] == target.resolve()
 
 
 class TestProductionConfig:

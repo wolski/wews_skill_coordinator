@@ -21,6 +21,8 @@ except ModuleNotFoundError:
 import cyclopts
 from pydantic import BaseModel, Field, model_validator
 
+import skill_bookkeeping
+
 app = cyclopts.App(
     name="skill-coordinator",
     help="Install skills from npx packages and local checkouts, and switch profiles.",
@@ -33,6 +35,8 @@ AGENTS_SKILLS_DIR = Path.home() / ".agents" / "skills"
 CLAUDE_SKILLS_DIR = Path.home() / ".claude" / "skills"
 NPX_LOCK = Path.home() / ".agents" / ".skill-lock.json"
 KAIROS_KNOW_DIR = ROOT / ".kairos" / "knowledge"
+SCAN_ROOT = Path.home() / "projects"
+BOOKKEEPING_OUT = ROOT / "TODO" / "skill_bookkeeping"
 
 # Claude Code reads its own directory; npx points it at the shared store with
 # exactly this relative link, and locally installed skills match that layout.
@@ -818,6 +822,73 @@ def list_installed() -> None:
     ]
     print()
     print(f"  matching profile: {', '.join(matches) if matches else 'none'}")
+
+
+def read_coordinator(config: SkillsConfig) -> skill_bookkeeping.Coordinator:
+    """Collect the configured inventory and the live install state for the scan."""
+    profiles: dict[str, set[str]] = {}
+    packages: dict[str, str] = {}
+    for profile_name in config.profiles:
+        for reference in profile_skill_references(profile_name, config):
+            profiles.setdefault(reference.name, set()).add(profile_name)
+            packages[reference.name] = reference.package
+
+    owned: list[Path] = []
+    checkouts: list[Path] = []
+    for package, source in config.sources.items():
+        (owned if source.owned else checkouts).append(source_root(source))
+        packages.setdefault(package, package)
+
+    installed: dict[str, str] = {}
+    targets: dict[str, Path] = {}
+    if AGENTS_SKILLS_DIR.is_dir():
+        for entry in AGENTS_SKILLS_DIR.iterdir():
+            if entry.is_symlink():
+                installed[entry.name] = "symlink"
+                targets[entry.name] = entry.resolve()
+            elif entry.is_dir():
+                installed[entry.name] = "npx-copy"
+                targets[entry.name] = entry
+    claude = (
+        frozenset(entry.name for entry in CLAUDE_SKILLS_DIR.iterdir())
+        if CLAUDE_SKILLS_DIR.is_dir()
+        else frozenset()
+    )
+    return skill_bookkeeping.Coordinator(
+        profiles={name: frozenset(values) for name, values in profiles.items()},
+        packages=packages,
+        owned_roots=tuple(owned),
+        checkout_roots=tuple(checkouts),
+        installed=installed,
+        install_targets=targets,
+        claude_links=claude,
+        store=AGENTS_SKILLS_DIR,
+    )
+
+
+@app.command
+def bookkeeping(
+    root: Path = SCAN_ROOT,
+    *,
+    out: Path = BOOKKEEPING_OUT,
+    html: bool = True,
+) -> None:
+    """Inventory every SKILL.md under ROOT and report how each one is held.
+
+    Writes a CSV to filter, a Markdown report grouped by verdict, and an HTML
+    rendering of that Markdown. Reads only; installs and moves nothing.
+
+    Args:
+        root: Folder to scan. A symlinked directory is recorded, not descended into.
+        out: Output path without a suffix; .csv, .md and .html are added.
+        html: Render the Markdown report to HTML. Needs the markdown package.
+    """
+    root = root.expanduser().resolve()
+    if not root.is_dir():
+        raise SystemExit(f"not a directory: {root}")
+    out = out.expanduser()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    skill_bookkeeping.run(root, out, read_coordinator(load_config()), html=html)
 
 
 @app.command
