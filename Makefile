@@ -13,6 +13,16 @@ help: ## Show this help
 	@echo "Update:       make update"
 	@echo "Switch:       make switch PROFILE=python-design"
 	@echo ""
+	@echo "Targets:"
+	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
+		| sort \
+		| awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
+	@echo ""
+	@echo "Variables:"
+	@echo "  PROFILE          profile for install/switch/dry-run (now: $(PROFILE))"
+	@echo "  SCAN_ROOT        folder bookkeeping scans (now: $(SCAN_ROOT))"
+	@echo "  BOOK_OUT         bookkeeping output prefix (now: $(BOOK_OUT))"
+	@echo ""
 	@$(PY) --help
 
 clone: ## Clone missing source checkouts declared with a git_url
