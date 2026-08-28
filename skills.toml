@@ -66,6 +66,10 @@ skills = [
     "google-deepmind/science-skills@uv",
 ]
 
+[profiles.python-communication]
+description = "Python development plus FGCZ communication workflows."
+includes = ["python", "fgcz-communication"]
+
 [profiles.r]
 description = "R development, package engineering, CLI design, testing, and prolfqua workflows."
 skills = [
