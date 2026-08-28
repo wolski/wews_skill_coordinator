@@ -55,12 +55,15 @@ Precedence: the closest `AGENTS.md` wins and applies to its subtree.
    resolving each slug back to a directory. `make memory-prune` removes only the
    stores nothing claims; `DRY_RUN=1` previews and must write nothing.
 
-Add skills directly to topical profiles as `owner/repository@skill-name`; `full`
-includes all profiles automatically. Compose named profiles with `includes`. Add
-`[package_options."owner/repository"]` only when an npx-installed package requires
-an option such as `full_depth = true`; it may not name a source. Add
-`[sources."owner/repository"]` to install a package from a local checkout, with
-`owned = true` only when this repository owns the skills.
+Add local-source skills to topical profiles by their exact source-relative path,
+`owner/repository@<category>/skills/<name>`; flattened local selectors are
+invalid. Add npx-installed skills as `owner/repository@skill-name`. Mirror each
+contributing FGCZ source folder with an independently selectable `fgcz-*`
+profile, then compose broader profiles with `includes`; `full` includes all
+profiles automatically. Add `[package_options."owner/repository"]` only when an
+npx-installed package requires an option such as `full_depth = true`; it may not
+name a source. Add `[sources."owner/repository"]` to install a package from a
+local checkout, with `owned = true` only when this repository owns the skills.
 
 ## Verification
 

@@ -63,7 +63,8 @@ Two things from `1c96e16` are deliberately **not** restored:
 6. All 20 configured `fgcz/skills@` skills — including `prolfquapp-dea`,
    `adding-models-to-prolfqua` and `phosphoproteomics-ptm-analysis`, which were
    absent before that pull — now exist both on the checked-out branch and on
-   `origin/main`. `skills.toml` needs no change.
+   `origin/main`. At that point, `skills.toml` needed no inventory addition; the
+   later exact-path migration changed their reference syntax and grouping.
 7. Consequence for the design: with symlinks, the installed content is whatever
    branch each source checkout happens to be on. That state must be visible.
 8. Measured: a **symlink** placed at `~/.agents/skills/plotly` pointing into this
@@ -79,7 +80,9 @@ Two things from `1c96e16` are deliberately **not** restored:
 ### Config — new `[sources]` table
 
 A package listed under `[sources]` is locally managed; every other package goes to
-npx. Nothing else in the `owner/repository@skill` reference notation changes.
+npx. Local references now retain the exact source-relative directory as
+`owner/repository@<category>/skills/<name>`. Npx references retain the plain
+`owner/repository@skill-name` selector.
 
 ```toml
 [sources."wolski/wews_skill_coordinator"]
@@ -93,7 +96,8 @@ git_url = "https://github.com/fgcz/skills.git"
 
 - `path`: root under which skills are discovered with the uniform
   `<category>/skills/<name>/SKILL.md` layout, the same layout both trees already
-  use. Frontmatter `name:` must equal the directory name (existing rule).
+  use. Profile references repeat that exact directory, without basename fallback.
+  Frontmatter `name:` must equal the directory name (existing rule).
 - `owned = true` (default `false`): the source is exhaustive — every discovered
   skill must be configured and every configured skill must exist. Non-owned
   sources only require configured skills to be a subset of the checkout, because
@@ -101,7 +105,11 @@ git_url = "https://github.com/fgcz/skills.git"
   off it) of which 20 are configured.
 - `git_url` (optional): enables `clone` and `update` for that source.
 
-Adding another folder is then one `[sources]` block plus profile entries.
+Adding another folder is then one `[sources]` block plus exact-path profile
+entries. Folder-aligned profiles expose the contributing FGCZ source categories
+as `fgcz-bfabric-lims`, `fgcz-communication`, `fgcz-infrastructure`,
+`fgcz-meta-skills`, and `fgcz-proteomics-data-analysis`; the broad `fgcz` profile
+composes those groups.
 
 ### Install layout
 

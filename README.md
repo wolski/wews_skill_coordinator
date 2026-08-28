@@ -48,8 +48,10 @@ coordinator-managed is reported as `CONFLICT` and never overwritten.
 
 ## Configuration
 
-Profiles are the authoritative skill inventory. Each entry combines its package
-and exact skill name as `owner/repository@skill`, whichever way it is installed.
+Profiles are the authoritative skill inventory. A locally sourced entry uses its
+exact source-relative directory as
+`owner/repository@<category>/skills/<name>`. An npx-installed entry uses the
+package's skill selector as `owner/repository@skill-name`.
 
 ```toml
 [sources."wolski/wews_skill_coordinator"]
@@ -66,10 +68,16 @@ full_depth = true
 [profiles.python-design]
 description = "Wolski's Python style and bounded design guidance, plus public Clean Architecture."
 skills = [
-    "wolski/wews_skill_coordinator@python-style-guide",
-    "wolski/wews_skill_coordinator@design-principles",
-    "wolski/wews_skill_coordinator@polymorphism-over-discrimination",
+    "wolski/wews_skill_coordinator@software-engineering/skills/python-style-guide",
+    "wolski/wews_skill_coordinator@software-engineering/skills/design-principles",
+    "wolski/wews_skill_coordinator@software-engineering/skills/polymorphism-over-discrimination",
     "pproenca/dot-skills@clean-architecture",
+]
+
+[profiles.fgcz-communication]
+description = "FGCZ communication and requirements-elaboration workflows."
+skills = [
+    "fgcz/skills@communication/skills/interview-to-spec",
 ]
 
 [profiles.python]
@@ -87,7 +95,9 @@ The coordinator groups npx entries from the same package into one command. The
 `includes` field composes named profiles, while `includes = ["*"]` composes every
 other profile. The `full` profile therefore contains no direct skills. Cleanup
 uses the union of every direct profile entry. A skill name may have only one
-package owner.
+package owner. The `fgcz-*` profiles mirror the contributing top-level folders
+in the FGCZ checkout, so those folder groups are independently selectable and
+the broad `fgcz` profile composes them.
 
 ### Adding a folder as a source
 
@@ -99,10 +109,12 @@ One `[sources]` block plus profile entries is the whole change:
 | `owned` | `true` only for skills this repository owns; the tree must then match `skills.toml` exactly, in both directions |
 | `git_url` | optional; enables `make clone` and the pull in `make update` |
 
-Skills are discovered at `<category>/skills/<name>/SKILL.md` under the root, and
-the frontmatter `name` must equal the directory name. In an `owned` source
-anything off that pattern is an error. In a third-party checkout it is simply not
-a skill this repository installs, because such a checkout legitimately carries
+Skills are discovered at `<category>/skills/<name>/SKILL.md` under the root. A
+local profile entry must repeat that exact relative directory; no basename
+lookup or flattened fallback is performed. The frontmatter `name` must equal the
+directory name. In an `owned` source anything off that pattern is an error. In a
+third-party checkout it is simply not a skill this repository installs, because
+such a checkout legitimately carries
 far more skills than any profile selects.
 
 A source may be absent — not cloned yet, or on a branch that predates a skill. That

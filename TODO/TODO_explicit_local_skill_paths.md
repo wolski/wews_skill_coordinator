@@ -3,6 +3,8 @@
 > Make the source-relative folder path the configured identity of every locally
 > managed skill; never resolve a local skill by a flattened basename.
 
+Status: implemented and verified on 2026-08-28.
+
 ## Requirements
 
 - A profile entry for a package declared under `[sources]` must contain the exact
@@ -30,8 +32,23 @@
   for example `pproenca/dot-skills@clean-architecture`. The coordinator does not
   own or inventory those source trees, and npx accepts a skill name rather than a
   repository-relative path.
-- Do not change which profiles include which skills in this refactor. Profile
-  reorganization, including a possible agent-workflows profile, is separate work.
+- Represent each FGCZ source folder that contributes configured skills as its own
+  composable profile in `skills.toml`:
+
+  - `fgcz-bfabric-lims`
+  - `fgcz-communication`
+  - `fgcz-infrastructure`
+  - `fgcz-meta-skills`
+  - `fgcz-proteomics-data-analysis`
+
+- The broad `fgcz` profile includes all five FGCZ folder profiles. The
+  `proteomics` profile includes the complete `fgcz-bfabric-lims` and
+  `fgcz-proteomics-data-analysis` profiles plus its existing individual
+  infrastructure dependency. Other logical profiles may still select individual
+  exact paths when they intentionally need only part of a folder group.
+- Folder profiles contain the complete configured inventory from that folder, so
+  the configuration visibly mirrors the local source structure rather than
+  presenting one flattened FGCZ list.
 
 ## Design
 
@@ -76,28 +93,82 @@ source-relative path for local installations.
 No migration alias is added: a flattened local reference fails configuration
 validation with an error showing the expected exact path form.
 
+### Folder-aligned profiles
+
+Use the existing profile-composition mechanism rather than adding a second group
+abstraction. A folder becomes an ordinary installable profile:
+
+```toml
+[profiles.fgcz-communication]
+description = "FGCZ communication workflows."
+skills = [
+    "fgcz/skills@communication/skills/interview-to-spec",
+]
+
+[profiles.fgcz-proteomics-data-analysis]
+description = "FGCZ proteomics data-analysis skills."
+skills = [
+    "fgcz/skills@proteomics-data-analysis/skills/adding-models-to-prolfqua",
+    # other configured skills from the same source folder
+]
+
+[profiles.fgcz]
+description = "All configured FGCZ skill groups."
+includes = [
+    "fgcz-bfabric-lims",
+    "fgcz-communication",
+    "fgcz-infrastructure",
+    "fgcz-meta-skills",
+    "fgcz-proteomics-data-analysis",
+]
+```
+
+This keeps one composition concept: folder groups and broader workflow bundles
+are both profiles. `full` continues to include every profile and deduplicates
+references through the existing resolver.
+
 ## Implementation plan
 
-- [ ] Update `SkillReference` and local inventory types in
+- [x] Update `SkillReference` and local inventory types in
   `skill_coordinator.py` so local selectors remain exact paths through parsing,
   validation, profile resolution, and reporting.
-- [ ] Add strict local-path validation and preserve strict npx-name validation.
-- [ ] Migrate every local-source occurrence in `skills.toml` to its exact path,
+- [x] Add strict local-path validation and preserve strict npx-name validation.
+- [x] Migrate every local-source occurrence in `skills.toml` to its exact path,
   including all Wolski and FGCZ entries; leave npx entries unchanged.
-- [ ] Update inventory, profile, reconciliation, and production-configuration
+- [x] Add the five FGCZ folder profiles, move their complete configured inventories
+  into those profiles, and compose `fgcz` and `proteomics` from them without
+  duplicating whole folder lists.
+- [x] Update inventory, profile, reconciliation, and production-configuration
   tests in `test_skill_coordinator.py`.
-- [ ] Add regression tests proving that flattened local references, basename
+- [x] Add regression tests proving that flattened local references, basename
   fallback, traversal, absolute paths, wrong categories, and frontmatter/path
   disagreement are rejected.
-- [ ] Update `README.md`, `AGENTS.md`, and the mixed-install TODO so examples and
+- [x] Update `README.md`, `AGENTS.md`, and the mixed-install TODO so examples and
   configuration rules show exact local paths and do not describe local references
   as flattened names.
-- [ ] Run `make test`, Ruff checks and formatting, Pyright, `git diff --check`,
+- [x] Run `make test`, Ruff checks and formatting, Pyright, `git diff --check`,
   and dry runs for `python-design` and `full`.
+
+## Verification results
+
+- `make test`: 142 tests passed.
+- `uvx ruff check skill_coordinator.py test_skill_coordinator.py`: passed.
+- `uvx ruff format --check skill_coordinator.py test_skill_coordinator.py`:
+  passed after formatting the changed test module.
+- Pyright over the changed Python module and test: 0 errors, 0 warnings.
+- `git diff --check`: passed.
+- `make dry-run PROFILE=python-design`: passed and reported the selected profile.
+- `make dry-run PROFILE=full`: passed, resolved all 71 configured runtime names,
+  and displayed local targets with their category paths.
+- `make profiles`: `fgcz` resolves 20 skills from the five folder profiles;
+  `proteomics` resolves 11 skills from its two included folder profiles and one
+  direct infrastructure skill.
 
 ## Acceptance
 
 - `skills.toml` visibly preserves source categories for all local skills.
+- FGCZ folder categories are independently selectable profiles, and `fgcz`
+  composes the complete configured FGCZ inventory from them.
 - `fgcz/skills@interview-to-spec` fails; the exact
   `fgcz/skills@communication/skills/interview-to-spec` succeeds.
 - `fgcz/skills@adding-models-to-prolfqua` fails; the exact
@@ -109,5 +180,6 @@ validation with an error showing the expected exact path form.
 
 ## Open question
 
-- None for path identity. Reorganizing logical profiles by agent workflow or FGCZ
-  source category is intentionally outside this refactor.
+- A general `agent-workflows` profile is intentionally not invented in this
+  refactor. `interview-to-spec` becomes independently selectable through
+  `fgcz-communication`; a broader agent taxonomy can be designed separately.

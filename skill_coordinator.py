@@ -11,7 +11,7 @@ import json
 import os
 import subprocess
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 try:
     import tomllib
@@ -76,7 +76,7 @@ class SkillsConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_names(self) -> SkillsConfig:
-        package_by_skill: dict[str, str] = {}
+        reference_by_skill: dict[str, str] = {}
         referenced_packages: set[str] = set()
         for profile_name, profile in self.profiles.items():
             self._validate_includes(profile_name, profile.includes)
@@ -85,19 +85,41 @@ class SkillsConfig(BaseModel):
             )
             for value in profile.skills:
                 reference = SkillReference.parse(value)
+                self._validate_selector(reference)
                 referenced_packages.add(reference.package)
-                previous_package = package_by_skill.setdefault(
-                    reference.name, reference.package
+                previous_reference = reference_by_skill.setdefault(
+                    reference.name, reference.identifier
                 )
-                if previous_package != reference.package:
+                if previous_reference != reference.identifier:
                     raise ValueError(
                         f"skill {reference.name!r} is referenced from both "
-                        f"{previous_package!r} and {reference.package!r}"
+                        f"{previous_reference!r} and {reference.identifier!r}"
                     )
         self._validate_composition_graph()
         self._validate_package_tables(referenced_packages)
         self._validate_full_profile()
         return self
+
+    def _validate_selector(self, reference: SkillReference) -> None:
+        selector = reference.selector
+        if reference.package not in self.sources:
+            if "/" in selector or "\\" in selector:
+                raise ValueError(
+                    f"invalid skill reference {reference.identifier!r}; "
+                    "an npx selector must be a skill name, not a path"
+                )
+            return
+        parts = selector.split("/")
+        if (
+            len(parts) != 3
+            or parts[1] != "skills"
+            or any(part in {"", ".", ".."} for part in parts)
+            or "\\" in selector
+        ):
+            raise ValueError(
+                f"invalid local skill reference {reference.identifier!r}; expected "
+                "owner/repository@<category>/skills/<name>"
+            )
 
     def _validate_includes(self, profile_name: str, includes: list[str]) -> None:
         self._reject_duplicates(
@@ -174,31 +196,35 @@ class SkillsConfig(BaseModel):
 @dataclass(frozen=True, slots=True)
 class SkillReference:
     package: str
-    name: str
+    selector: str
 
     @classmethod
     def parse(cls, value: str) -> SkillReference:
-        """Parse the coordinator's owner/repository@skill notation."""
+        """Parse the coordinator's owner/repository@selector notation."""
         if value.count("@") != 1:
             raise ValueError(
-                f"invalid skill reference {value!r}; expected owner/repository@skill"
+                f"invalid skill reference {value!r}; expected owner/repository@selector"
             )
-        package, name = value.split("@")
+        package, selector = value.split("@")
         if (
             package.count("/") != 1
             or not all(package.split("/"))
-            or not name
-            or "/" in name
+            or not selector
             or any(character.isspace() for character in value)
         ):
             raise ValueError(
-                f"invalid skill reference {value!r}; expected owner/repository@skill"
+                f"invalid skill reference {value!r}; expected owner/repository@selector"
             )
-        return cls(package=package, name=name)
+        return cls(package=package, selector=selector)
+
+    @property
+    def name(self) -> str:
+        """Runtime skill name derived from the configured selector."""
+        return PurePosixPath(self.selector).name
 
     @property
     def identifier(self) -> str:
-        return f"{self.package}@{self.name}"
+        return f"{self.package}@{self.selector}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -228,6 +254,14 @@ class PackageSelection:
 class LocalSkill:
     name: str
     package: str
+    source_path: PurePosixPath
+    directory: Path
+
+
+@dataclass(frozen=True, slots=True)
+class SourceSkill:
+    source_path: PurePosixPath
+    name: str
     directory: Path
 
 
@@ -267,15 +301,16 @@ def _frontmatter_name(path: Path) -> str:
     raise ValueError(f"skill frontmatter has no name: {path}")
 
 
-def source_inventory(source: Source) -> dict[str, Path]:
-    """Map skill name to source directory for one local source.
+def source_inventory(source: Source) -> dict[PurePosixPath, SourceSkill]:
+    """Map exact source-relative paths to skills for one local source.
 
     Skills live at ``<category>/skills/<name>/SKILL.md`` under the source root.
     An owned source must contain nothing else; a third-party checkout may, and
     anything off the pattern there is simply not a skill this repository installs.
     """
     root = source_root(source)
-    inventory: dict[str, Path] = {}
+    inventory: dict[PurePosixPath, SourceSkill] = {}
+    path_by_name: dict[str, PurePosixPath] = {}
     for path in sorted(root.rglob("SKILL.md")):
         relative = path.relative_to(root)
         if len(relative.parts) != 4 or relative.parts[1] != "skills":
@@ -291,32 +326,32 @@ def source_inventory(source: Source) -> dict[str, Path]:
                     f"skill directory {relative.parts[2]!r} disagrees with name {name!r}"
                 )
             continue
-        if name in inventory:
+        source_path = PurePosixPath(*relative.parent.parts)
+        if name in path_by_name:
             raise ValueError(
-                f"duplicate local skill name {name!r}: {inventory[name]} and {path}"
+                f"duplicate local skill name {name!r}: "
+                f"{path_by_name[name]} and {source_path}"
             )
-        inventory[name] = path.parent
+        path_by_name[name] = source_path
+        inventory[source_path] = SourceSkill(
+            source_path=source_path,
+            name=name,
+            directory=path.parent,
+        )
     return inventory
 
 
 def validate_sources(config: SkillsConfig) -> None:
     """Check every present source checkout against the configured references."""
-    seen: dict[str, str] = {}
     for package, source in config.sources.items():
         configured = {
-            reference.name
+            PurePosixPath(reference.selector)
             for reference in all_skill_references(config)
             if reference.package == package
         }
         if not source_root(source).is_dir():
             continue  # not cloned yet; `clone` fetches it and `install` reports it
         inventory = source_inventory(source)
-        for name in inventory:
-            owner = seen.setdefault(name, package)
-            if owner != package and name in configured:
-                raise ValueError(
-                    f"skill {name!r} is provided by both {owner!r} and {package!r}"
-                )
         if not source.owned:
             # A third-party checkout may sit on any branch. A configured skill it
             # does not carry is reported by `install`, not raised here, so that
@@ -325,10 +360,10 @@ def validate_sources(config: SkillsConfig) -> None:
         problems: list[str] = []
         missing = configured - set(inventory)
         if missing:
-            problems.append(f"missing={sorted(missing)}")
+            problems.append(f"missing={sorted(map(str, missing))}")
         unconfigured = set(inventory) - configured
         if unconfigured:
-            problems.append(f"unconfigured={sorted(unconfigured)}")
+            problems.append(f"unconfigured={sorted(map(str, unconfigured))}")
         if problems:
             raise ValueError(
                 f"source {package!r} disagrees with skills.toml: {', '.join(problems)}"
@@ -407,15 +442,18 @@ def resolve_profile(
         if reference.package not in config.sources:
             npx_references.setdefault(reference.package, []).append(reference)
             continue
-        directory = inventories[reference.package].get(reference.name)
-        if directory is None:
-            missing.append(reference.name)
+        source_skill = inventories[reference.package].get(
+            PurePosixPath(reference.selector)
+        )
+        if source_skill is None:
+            missing.append(reference.identifier)
         else:
             local.append(
                 LocalSkill(
-                    name=reference.name,
+                    name=source_skill.name,
                     package=reference.package,
-                    directory=directory,
+                    source_path=source_skill.source_path,
+                    directory=source_skill.directory,
                 )
             )
     packages = tuple(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 from pydantic import ValidationError
@@ -51,11 +51,11 @@ includes = ["*"]
 
 [profiles.python-style]
 description = "Python style"
-skills = ["owner/local@python-style"]
+skills = ["owner/local@engineering/skills/python-style"]
 
 [profiles.r]
 description = "R tools"
-skills = ["owner/local@r-style"]
+skills = ["owner/local@engineering/skills/r-style"]
 
 [profiles.python]
 description = "Python tools"
@@ -166,6 +166,18 @@ class TestConfig:
                 }
             )
 
+    def test_same_runtime_name_at_different_local_paths_rejected(self):
+        with pytest.raises(ValidationError, match="referenced from both"):
+            SkillsConfig(
+                sources={"a/a": Source(path="skills")},
+                profiles={
+                    "one": Profile(description="One", skills=["a/a@first/skills/same"]),
+                    "two": Profile(
+                        description="Two", skills=["a/a@second/skills/same"]
+                    ),
+                },
+            )
+
     def test_unused_package_options_rejected(self):
         with pytest.raises(ValidationError, match="unused packages"):
             SkillsConfig(package_options={"a/a": PackageOptions(full_depth=True)})
@@ -179,7 +191,29 @@ class TestConfig:
             SkillsConfig(
                 sources={"a/a": Source(path="skills")},
                 package_options={"a/a": PackageOptions(full_depth=True)},
-                profiles={"one": Profile(description="One", skills=["a/a@one"])},
+                profiles={
+                    "one": Profile(description="One", skills=["a/a@domain/skills/one"])
+                },
+            )
+
+    @pytest.mark.parametrize(
+        "selector",
+        [
+            "one",
+            "/domain/skills/one",
+            "domain/../one",
+            "domain/other/one",
+            "domain/skills/one/extra",
+            r"domain\skills\one",
+        ],
+    )
+    def test_local_reference_requires_an_exact_normalized_path(self, selector: str):
+        with pytest.raises(ValidationError, match="invalid local skill reference"):
+            SkillsConfig(
+                sources={"a/a": Source(path="skills")},
+                profiles={
+                    "one": Profile(description="One", skills=[f"a/a@{selector}"])
+                },
             )
 
     def test_unknown_included_profile_rejected(self):
@@ -241,21 +275,33 @@ class TestConfig:
     def test_skill_reference(self):
         reference = SkillReference.parse("owner/repo@one")
         assert reference.package == "owner/repo"
+        assert reference.selector == "one"
         assert reference.name == "one"
         assert reference.identifier == "owner/repo@one"
+
+        local = SkillReference.parse("owner/repo@domain/skills/local")
+        assert local.selector == "domain/skills/local"
+        assert local.name == "local"
 
 
 class TestSourceInventory:
     def test_owned_source_matches_config(self, configured: Path):
         config = load_config()
         inventory = source_inventory(config.sources["owner/local"])
-        assert sorted(inventory) == ["python-style", "r-style"]
-        assert inventory["r-style"].name == "r-style"
+        assert sorted(map(str, inventory)) == [
+            "engineering/skills/python-style",
+            "engineering/skills/r-style",
+        ]
+        r_style = inventory[PurePosixPath("engineering/skills/r-style")]
+        assert r_style.name == "r-style"
+        assert r_style.directory.name == "r-style"
         validate_sources(config)
 
     def test_owned_source_rejects_unconfigured_skill(self, configured: Path):
         write_skill(configured / "skills", "engineering", "extra")
-        with pytest.raises(ValueError, match=r"unconfigured=\['extra'\]"):
+        with pytest.raises(
+            ValueError, match=r"unconfigured=\['engineering/skills/extra'\]"
+        ):
             load_config()
 
     def test_owned_source_rejects_configured_skill_absent_from_tree(
@@ -264,7 +310,17 @@ class TestSourceInventory:
         (
             configured / "skills" / "engineering" / "skills" / "r-style" / "SKILL.md"
         ).unlink()
-        with pytest.raises(ValueError, match=r"missing=\['r-style'\]"):
+        with pytest.raises(
+            ValueError, match=r"missing=\['engineering/skills/r-style'\]"
+        ):
+            load_config()
+
+    def test_owned_source_rejects_frontmatter_path_disagreement(self, configured: Path):
+        skill = (
+            configured / "skills" / "engineering" / "skills" / "r-style" / "SKILL.md"
+        )
+        skill.write_text("---\nname: renamed\ndescription: T.\n---\n")
+        with pytest.raises(ValueError, match="disagrees with name 'renamed'"):
             load_config()
 
     def test_owned_source_rejects_off_pattern_skill(self, configured: Path):
@@ -289,13 +345,18 @@ class TestSourceInventory:
         source = Source(path="checkout")
         with pytest.MonkeyPatch.context() as patch:
             patch.setattr(skill_coordinator, "ROOT", tmp_path)
-            assert sorted(source_inventory(source)) == ["not-configured", "wanted"]
+            assert sorted(map(str, source_inventory(source))) == [
+                "domain/skills/not-configured",
+                "domain/skills/wanted",
+            ]
 
     def test_absent_checkout_is_not_validated(self, tmp_path: Path, monkeypatch):
         monkeypatch.setattr(skill_coordinator, "ROOT", tmp_path)
         config = SkillsConfig(
             sources={"a/a": Source(path="never-cloned")},
-            profiles={"one": Profile(description="One", skills=["a/a@one"])},
+            profiles={
+                "one": Profile(description="One", skills=["a/a@domain/skills/one"])
+            },
         )
         validate_sources(config)
 
@@ -325,17 +386,20 @@ class TestProfiles:
     def test_local_skill_absent_from_checkout_is_reported_missing(
         self, configured: Path
     ):
-        (configured / "skills" / "engineering" / "skills" / "r-style").rename(
-            configured / "skills" / "engineering" / "skills" / "moved-away"
-        )
+        moved = configured / "skills" / "science" / "skills" / "r-style"
+        moved.parent.mkdir(parents=True)
+        (configured / "skills" / "engineering" / "skills" / "r-style").rename(moved)
         config = SkillsConfig(
             sources={"owner/local": Source(path="skills", owned=False)},
             profiles={
-                "one": Profile(description="One", skills=["owner/local@r-style"])
+                "one": Profile(
+                    description="One",
+                    skills=["owner/local@engineering/skills/r-style"],
+                )
             },
         )
         selection = resolve_profile("one", config)
-        assert selection.missing == ("r-style",)
+        assert selection.missing == ("owner/local@engineering/skills/r-style",)
         assert selection.local == ()
 
     def test_composition_deduplicates_references(self, configured: Path):
@@ -382,6 +446,7 @@ class TestSymlinkInstall:
         return LocalSkill(
             name=name,
             package="owner/local",
+            source_path=PurePosixPath(f"engineering/skills/{name}"),
             directory=root / "skills" / "engineering" / "skills" / name,
         )
 
@@ -408,7 +473,12 @@ class TestSymlinkInstall:
         install_local_skill(skill, self.roots(configured), dry_run=False)
         moved = write_skill(configured / "skills", "science", "r-style")
         install_local_skill(
-            LocalSkill(name="r-style", package="owner/local", directory=moved),
+            LocalSkill(
+                name="r-style",
+                package="owner/local",
+                source_path=PurePosixPath("science/skills/r-style"),
+                directory=moved,
+            ),
             self.roots(configured),
             dry_run=False,
         )
@@ -513,7 +583,7 @@ class TestSymlinkInstall:
             "owned = true\n\n"
             "[profiles.local]\n"
             'description = "Local"\n'
-            'skills = ["owner/local@outside"]\n'
+            'skills = ["owner/local@engineering/skills/outside"]\n'
         )
         monkeypatch.setattr(skill_coordinator, "ROOT", root)
         monkeypatch.setattr(skill_coordinator, "CONF_TOML", config)
@@ -635,6 +705,7 @@ class TestSwitch:
             LocalSkill(
                 name="clean-architecture",
                 package="owner/local",
+                source_path=PurePosixPath("engineering/skills/r-style"),
                 directory=configured / "skills" / "engineering" / "skills" / "r-style",
             ),
             source_roots(load_config()),
@@ -659,6 +730,7 @@ class TestSwitch:
             LocalSkill(
                 name="clean-architecture",
                 package="owner/local",
+                source_path=PurePosixPath("engineering/skills/r-style"),
                 directory=directory,
             ),
             source_roots(load_config()),
@@ -697,7 +769,7 @@ class TestSwitch:
         with pytest.raises(SystemExit, match="absent from their checkout"):
             skill_coordinator.switch(profile="python")
         output = capsys.readouterr().out
-        assert "MISSING        python-style" in output
+        assert "MISSING        owner/local@engineering/skills/python-style" in output
         assert any(command[3] == "add" for command in record_run)
 
 
@@ -740,7 +812,8 @@ class TestSourceCheckouts:
         config = tmp_path / "skills.toml"
         config.write_text(
             '[sources."a/a"]\npath = "checkout"\ngit_url = "https://example.invalid/a.git"\n\n'
-            '[profiles.one]\ndescription = "One"\nskills = ["a/a@one"]\n'
+            '[profiles.one]\ndescription = "One"\n'
+            'skills = ["a/a@domain/skills/one"]\n'
         )
         monkeypatch.setattr(skill_coordinator, "ROOT", tmp_path)
         monkeypatch.setattr(skill_coordinator, "CONF_TOML", config)
@@ -784,7 +857,7 @@ class TestSourceCheckouts:
             'git_url = "https://example.invalid/a.git"\n\n'
             "[profiles.one]\n"
             'description = "One"\n'
-            'skills = ["a/a@one"]\n'
+            'skills = ["a/a@domain/skills/one"]\n'
         )
         (tmp_path / "checkout").mkdir()
         monkeypatch.setattr(skill_coordinator, "ROOT", tmp_path)
@@ -824,7 +897,9 @@ class TestReadCoordinator:
     ) -> None:
         view = read_coordinator(load_config())
 
-        assert view.profiles["python-style"] == frozenset({"full", "python", "python-style"})
+        assert view.profiles["python-style"] == frozenset(
+            {"full", "python", "python-style"}
+        )
         assert view.packages["python-style"] == "owner/local"
         assert view.owned_roots == (tmp_path / "skills",)
         assert view.checkout_roots == ()
@@ -869,10 +944,46 @@ class TestProductionConfig:
         assert set(
             source_inventory(config.sources["wolski/wews_skill_coordinator"])
         ) == {
-            reference.name
+            PurePosixPath(reference.selector)
             for reference in all_skill_references(config)
             if reference.package == "wolski/wews_skill_coordinator"
         }
+
+    def test_fgcz_profiles_mirror_configured_source_folders(self):
+        config = load_config()
+        folder_profiles = [
+            "fgcz-bfabric-lims",
+            "fgcz-communication",
+            "fgcz-infrastructure",
+            "fgcz-meta-skills",
+            "fgcz-proteomics-data-analysis",
+        ]
+
+        assert config.profiles["fgcz"].includes == folder_profiles
+        grouped_selectors = {
+            SkillReference.parse(value).selector
+            for profile_name in folder_profiles
+            for value in config.profiles[profile_name].skills
+        }
+        configured_selectors = {
+            reference.selector
+            for reference in all_skill_references(config)
+            if reference.package == "fgcz/skills"
+        }
+        assert grouped_selectors == configured_selectors
+        assert len(resolve_profile("fgcz", config).skill_names) == 20
+
+    def test_every_local_reference_uses_an_exact_source_path(self):
+        config = load_config()
+        for reference in all_skill_references(config):
+            if reference.package not in config.sources:
+                continue
+            source_path = PurePosixPath(reference.selector)
+            assert source_path.parts == (
+                source_path.parts[0],
+                "skills",
+                reference.name,
+            )
 
     def test_every_configured_local_skill_resolves_to_a_directory(self):
         config = load_config()
