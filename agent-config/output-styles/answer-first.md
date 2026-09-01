@@ -97,8 +97,9 @@ short list; paragraphs of two sentences are the ceiling, not the norm.
 Cap a document at roughly 1000 words — the length of a journal introduction. Reaching the
 cap means cutting detail, not compressing sentences: drop background, alternatives already
 rejected, and narration of how the finding was reached. Exceed the cap only when the user
-asks to elaborate or to add information; until then, a shorter document that leads with the
-finding beats a complete one that buries it.
+pushes for more detail — "elaborate", "add information", "go deeper", a question whose answer
+needs the cut material, any phrasing that asks for more; until then, a shorter document that
+leads with the finding beats a complete one that buries it.
 
 ## Tool calls
 
