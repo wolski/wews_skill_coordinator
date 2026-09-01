@@ -23,7 +23,37 @@ The bound is half the rule. This is **not** "few `if` statements are good". Bran
 return None` is correct Python and must not trigger an abstraction reflex. A review that flags
 guard clauses is worse than no review, because it teaches the reader to distrust the whole report.
 
-## Start here: get the worklist mechanically
+## When the task is a design review, start earlier
+
+**Opus- and Fable-class models only.** This protocol needs design judgement the sweep below does
+not have. A smaller model runs the mechanical sweep, reports its output, and states plainly that
+the design question was not asked — it does not guess a target model.
+
+The shapes and bounds below judge branches one at a time. A design review asks a prior question:
+**what decides what, and where?** Before any sweep, build the decision inventory — one row per
+point where the code decides what something *is* (every factory, suffix map, content probe, mode
+field, flag):
+
+| Decision | Evidence it uses | Where decided | Where consumed |
+|---|---|---|---|
+
+Then two rules:
+
+1. **Decisions drawing on evidence from the same object are one decision.** A package that chose
+   vendor by filename suffix at construction and acquisition mode from file content
+   mid-extraction had two single dispatch points, each individually passing the bounds below —
+   and together they were one undeclared factory: `build_parser(rawfile)`.
+2. **A decision belongs where its evidence is.** A selecting value computed at level A and
+   consumed at level C means the type should be chosen at A and the object passed down, not the
+   flag.
+
+The review's first deliverable is the **target object model**: the two or three lines the caller
+should write. State it before enumerating findings; each finding is then a delta from that
+model. A review that grades branches without stating the model has answered this skill's
+question and not the review's — that is the difference between an audit and a design review, and
+it was learned by failing it.
+
+## Get the worklist mechanically
 
 Do not start by grepping for `isinstance`. Most of what that finds is correct code, and reading it
 burns the review's attention before it reaches anything real.
@@ -116,6 +146,14 @@ payload**. Quick proxy: the condition compares a field to a **literal** (`self.m
 **And one destination that is not a defect:** a single dispatch point at a factory or composition
 root is right. A `dict[str, Handler]` with one lookup is the cure. The smell is the same case set
 appearing *again* past that lookup.
+
+Two qualifications, both from a review this bound derailed. It holds only when that dispatch is
+the **only** one answering its question: two single dispatch points keyed on properties of the
+same input — a suffix map at `__init__`, a content probe mid-extraction — are fragments of one
+factory, and each passes this bound alone. So **count the factories**: list every function
+returning a union or protocol instance; two keyed on the same input are one. And the dispatch
+must sit **where the evidence is** — a decision that fires once, but two frames below the level
+that computed its input, is at the wrong level, not exonerated.
 
 ## The shapes
 
