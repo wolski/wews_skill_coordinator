@@ -50,6 +50,10 @@ class PluginSource(BaseModel):
     names: list[str]
 
 
+class ActiveProfile(BaseModel):
+    profile: str
+
+
 class PackageOptions(BaseModel):
     full_depth: bool = False
 
@@ -69,6 +73,7 @@ class Profile(BaseModel):
 
 
 class SkillsConfig(BaseModel):
+    active: ActiveProfile
     plugins: dict[str, PluginSource] = Field(default_factory=dict)
     package_options: dict[str, PackageOptions] = Field(default_factory=dict)
     sources: dict[str, Source] = Field(default_factory=dict)
@@ -76,6 +81,10 @@ class SkillsConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_names(self) -> SkillsConfig:
+        if self.active.profile not in self.profiles:
+            raise ValueError(
+                f"active profile {self.active.profile!r} is not configured"
+            )
         reference_by_skill: dict[str, str] = {}
         referenced_packages: set[str] = set()
         for profile_name, profile in self.profiles.items():
@@ -701,9 +710,10 @@ def _remove_npx_skills(skill_names: frozenset[str], *, dry_run: bool) -> None:
     )
 
 
-def _switch(profile: str, *, dry_run: bool) -> None:
+def _switch(profile: str | None, *, dry_run: bool) -> None:
     config = load_config()
-    selection = resolve_profile(profile, config)
+    selected_profile = profile or config.active.profile
+    selection = resolve_profile(selected_profile, config)
     roots = source_roots(config)
     local_names = frozenset(skill.name for skill in selection.local)
     npx_names = frozenset(
@@ -742,7 +752,7 @@ def _switch(profile: str, *, dry_run: bool) -> None:
     dropped = all_skill_names(config) - selection.skill_names
     _remove_npx_skills(dropped & npx_skill_names(config), dry_run=dry_run)
     _remove_local_skills(dropped & local_skill_names(config), roots, dry_run=dry_run)
-    print(f"  active profile: {profile}")
+    print(f"  active profile: {selected_profile}")
     if selection.missing:
         raise SystemExit(
             f"{len(selection.missing)} configured skill(s) absent from their checkout"
@@ -750,13 +760,13 @@ def _switch(profile: str, *, dry_run: bool) -> None:
 
 
 @app.command
-def switch(*, profile: str = "full", dry_run: bool = False) -> None:
-    """Install and activate exactly one configured skill profile."""
+def switch(*, profile: str | None = None, dry_run: bool = False) -> None:
+    """Install and activate a profile, defaulting to active.profile."""
     _switch(profile, dry_run=dry_run)
 
 
 @app.command
-def install(*, profile: str = "full", dry_run: bool = False) -> None:
+def install(*, profile: str | None = None, dry_run: bool = False) -> None:
     """Install a profile (compatibility alias for switch)."""
     _switch(profile, dry_run=dry_run)
 
@@ -862,7 +872,10 @@ def list_installed() -> None:
         if resolve_profile(name, config).skill_names == active
     ]
     print()
-    print(f"  matching profile: {', '.join(matches) if matches else 'none'}")
+    print(f"  configured active profile: {config.active.profile}")
+    print(f"  installed profile match: {', '.join(matches) if matches else 'none'}")
+    if config.active.profile not in matches:
+        print("  WARNING: installed skills do not match the configured active profile")
 
 
 def read_coordinator(config: SkillsConfig) -> skill_bookkeeping.Coordinator:
@@ -975,6 +988,7 @@ def memory(
 def profiles() -> None:
     """List configured skill profiles."""
     config = load_config()
+    print(f"  active: {config.active.profile}")
     for name, profile in config.profiles.items():
         resolved = resolve_profile(name, config)
         includes = ", ".join(profile.includes) if profile.includes else "none"

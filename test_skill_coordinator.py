@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 import skill_coordinator
 from skill_coordinator import (
+    ActiveProfile,
     LocalSkill,
     PackageOptions,
     PackageSelection,
@@ -35,6 +36,8 @@ from skill_coordinator import (
 )
 
 CONFIG_TOML = """\
+active.profile = "python"
+
 [plugins.market]
 names = ["plugin-a"]
 
@@ -112,6 +115,7 @@ def record_run(monkeypatch) -> list[list[str]]:
 
 class TestConfig:
     def test_models(self):
+        assert ActiveProfile(profile="python").profile == "python"
         options = PackageOptions()
         assert not options.full_depth
         assert PluginSource(names=["p"]).names == ["p"]
@@ -122,6 +126,7 @@ class TestConfig:
 
     def test_load(self, configured: Path):
         config = load_config()
+        assert config.active.profile == "python"
         assert config.package_options["owner/public"].full_depth
         assert config.sources["owner/local"].owned
         assert all_skill_names(config) == {
@@ -133,12 +138,13 @@ class TestConfig:
     def test_duplicate_skill_reference_in_profile_rejected(self):
         with pytest.raises(ValidationError, match="duplicate skill references"):
             SkillsConfig(
+                active=ActiveProfile(profile="bad"),
                 profiles={
                     "bad": Profile(
                         description="Invalid",
                         skills=["a/a@same", "a/a@same"],
                     )
-                }
+                },
             )
 
     @pytest.mark.parametrize(
@@ -154,21 +160,24 @@ class TestConfig:
     def test_malformed_skill_reference_rejected(self, value: str):
         with pytest.raises(ValidationError, match="invalid skill reference"):
             SkillsConfig(
-                profiles={"bad": Profile(description="Invalid", skills=[value])}
+                active=ActiveProfile(profile="bad"),
+                profiles={"bad": Profile(description="Invalid", skills=[value])},
             )
 
     def test_same_skill_name_from_different_packages_rejected(self):
         with pytest.raises(ValidationError, match="referenced from both"):
             SkillsConfig(
+                active=ActiveProfile(profile="one"),
                 profiles={
                     "one": Profile(description="One", skills=["a/a@same"]),
                     "two": Profile(description="Two", skills=["b/b@same"]),
-                }
+                },
             )
 
     def test_same_runtime_name_at_different_local_paths_rejected(self):
         with pytest.raises(ValidationError, match="referenced from both"):
             SkillsConfig(
+                active=ActiveProfile(profile="one"),
                 sources={"a/a": Source(path="skills")},
                 profiles={
                     "one": Profile(description="One", skills=["a/a@first/skills/same"]),
@@ -180,15 +189,24 @@ class TestConfig:
 
     def test_unused_package_options_rejected(self):
         with pytest.raises(ValidationError, match="unused packages"):
-            SkillsConfig(package_options={"a/a": PackageOptions(full_depth=True)})
+            SkillsConfig(
+                active=ActiveProfile(profile="one"),
+                package_options={"a/a": PackageOptions(full_depth=True)},
+                profiles={"one": Profile(description="One")},
+            )
 
     def test_unused_source_rejected(self):
         with pytest.raises(ValidationError, match="sources reference unused packages"):
-            SkillsConfig(sources={"a/a": Source(path="skills")})
+            SkillsConfig(
+                active=ActiveProfile(profile="one"),
+                sources={"a/a": Source(path="skills")},
+                profiles={"one": Profile(description="One")},
+            )
 
     def test_source_and_package_options_are_exclusive(self):
         with pytest.raises(ValidationError, match="package options do not apply"):
             SkillsConfig(
+                active=ActiveProfile(profile="one"),
                 sources={"a/a": Source(path="skills")},
                 package_options={"a/a": PackageOptions(full_depth=True)},
                 profiles={
@@ -210,6 +228,7 @@ class TestConfig:
     def test_local_reference_requires_an_exact_normalized_path(self, selector: str):
         with pytest.raises(ValidationError, match="invalid local skill reference"):
             SkillsConfig(
+                active=ActiveProfile(profile="one"),
                 sources={"a/a": Source(path="skills")},
                 profiles={
                     "one": Profile(description="One", skills=[f"a/a@{selector}"])
@@ -219,40 +238,45 @@ class TestConfig:
     def test_unknown_included_profile_rejected(self):
         with pytest.raises(ValidationError, match="includes unknown profiles"):
             SkillsConfig(
+                active=ActiveProfile(profile="bad"),
                 profiles={
                     "bad": Profile(description="Invalid", includes=["missing"]),
-                }
+                },
             )
 
     def test_wildcard_include_must_be_alone(self):
         with pytest.raises(ValidationError, match="use '\\*' alone for includes"):
             SkillsConfig(
+                active=ActiveProfile(profile="one"),
                 profiles={
                     "one": Profile(description="One"),
                     "bad": Profile(description="Invalid", includes=["*", "one"]),
-                }
+                },
             )
 
     def test_self_include_rejected(self):
         with pytest.raises(ValidationError, match="cannot include itself"):
             SkillsConfig(
+                active=ActiveProfile(profile="bad"),
                 profiles={
                     "bad": Profile(description="Invalid", includes=["bad"]),
-                }
+                },
             )
 
     def test_only_full_may_include_every_profile(self):
         with pytest.raises(ValidationError, match="only the 'full' profile"):
             SkillsConfig(
+                active=ActiveProfile(profile="one"),
                 profiles={
                     "one": Profile(description="One"),
                     "everything": Profile(description="All", includes=["*"]),
-                }
+                },
             )
 
     def test_full_must_be_compositional(self):
         with pytest.raises(ValidationError, match="declare no skills"):
             SkillsConfig(
+                active=ActiveProfile(profile="full"),
                 profiles={
                     "full": Profile(
                         description="Everything",
@@ -260,16 +284,24 @@ class TestConfig:
                         skills=["a/a@one"],
                     ),
                     "one": Profile(description="One", skills=["a/a@one"]),
-                }
+                },
             )
 
     def test_composition_cycle_rejected(self):
         with pytest.raises(ValidationError, match="inclusion cycle"):
             SkillsConfig(
+                active=ActiveProfile(profile="one"),
                 profiles={
                     "one": Profile(description="One", includes=["two"]),
                     "two": Profile(description="Two", includes=["one"]),
-                }
+                },
+            )
+
+    def test_active_profile_must_be_configured(self):
+        with pytest.raises(ValidationError, match="active profile 'missing'"):
+            SkillsConfig(
+                active=ActiveProfile(profile="missing"),
+                profiles={"one": Profile(description="One")},
             )
 
     def test_skill_reference(self):
@@ -353,6 +385,7 @@ class TestSourceInventory:
     def test_absent_checkout_is_not_validated(self, tmp_path: Path, monkeypatch):
         monkeypatch.setattr(skill_coordinator, "ROOT", tmp_path)
         config = SkillsConfig(
+            active=ActiveProfile(profile="one"),
             sources={"a/a": Source(path="never-cloned")},
             profiles={
                 "one": Profile(description="One", skills=["a/a@domain/skills/one"])
@@ -390,6 +423,7 @@ class TestProfiles:
         moved.parent.mkdir(parents=True)
         (configured / "skills" / "engineering" / "skills" / "r-style").rename(moved)
         config = SkillsConfig(
+            active=ActiveProfile(profile="one"),
             sources={"owner/local": Source(path="skills", owned=False)},
             profiles={
                 "one": Profile(
@@ -432,6 +466,7 @@ class TestProfiles:
     def test_profiles_lists_descriptions(self, configured: Path, capsys):
         skill_coordinator.profiles()
         output = capsys.readouterr().out
+        assert "active: python" in output
         assert "full\n    Everything" in output
         assert "python\n    Python tools" in output
         assert "skills=3 (direct=0)" in output
@@ -578,6 +613,7 @@ class TestSymlinkInstall:
         write_skill(external, "engineering", "outside")
         config = root / "skills.toml"
         config.write_text(
+            'active.profile = "local"\n\n'
             '[sources."owner/local"]\n'
             'path = "../external"\n'
             "owned = true\n\n"
@@ -603,6 +639,14 @@ class TestSymlinkInstall:
 
 
 class TestSwitch:
+    def test_uses_configured_active_profile_by_default(
+        self, configured: Path, record_run, capsys
+    ):
+        skill_coordinator.switch()
+        output = capsys.readouterr().out
+        assert "active profile: python" in output
+        assert sorted(managed_links(source_roots(load_config()))) == ["python-style"]
+
     def test_dry_run_has_no_side_effects(self, configured: Path, monkeypatch, capsys):
         def unexpected_run(*args, **kwargs):
             raise AssertionError("dry run executed a command")
@@ -774,6 +818,26 @@ class TestSwitch:
 
 
 class TestNpxList:
+    def test_list_reports_configured_and_installed_profile(
+        self, configured: Path, monkeypatch, capsys
+    ):
+        selection = resolve_profile("python")
+        install_local_skill(
+            selection.local[0], source_roots(load_config()), dry_run=False
+        )
+        monkeypatch.setattr(
+            skill_coordinator,
+            "installed_skills",
+            lambda: [{"name": "clean-architecture", "agents": []}],
+        )
+
+        skill_coordinator.list_installed()
+
+        output = capsys.readouterr().out
+        assert "configured active profile: python" in output
+        assert "installed profile match: python" in output
+        assert "WARNING" not in output
+
     def test_warning_before_json_is_accepted(self):
         records = skill_coordinator._parse_npx_list(
             'warning about manifest\n[\n  {"name": "one", "agents": []}\n]\n'
@@ -811,6 +875,7 @@ class TestSourceCheckouts:
     ):
         config = tmp_path / "skills.toml"
         config.write_text(
+            'active.profile = "one"\n\n'
             '[sources."a/a"]\npath = "checkout"\ngit_url = "https://example.invalid/a.git"\n\n'
             '[profiles.one]\ndescription = "One"\n'
             'skills = ["a/a@domain/skills/one"]\n'
@@ -852,6 +917,7 @@ class TestSourceCheckouts:
     ):
         config = tmp_path / "skills.toml"
         config.write_text(
+            'active.profile = "one"\n\n'
             '[sources."a/a"]\n'
             'path = "checkout"\n'
             'git_url = "https://example.invalid/a.git"\n\n'

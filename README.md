@@ -18,7 +18,7 @@ plugins remain delegated to Claude's plugin manager.
 
 ```bash
 make clone                           # fetch missing source checkouts
-make install                         # install the full profile
+make install                         # install active.profile from skills.toml
 make profiles                        # show available profiles
 make switch PROFILE=python-design    # activate a smaller profile
 make update                          # update npx skills and pull checkouts
@@ -54,6 +54,8 @@ exact source-relative directory as
 package's skill selector as `owner/repository@skill-name`.
 
 ```toml
+active.profile = "python-bfabric"
+
 [sources."wolski/wews_skill_coordinator"]
 path = "skills"
 owned = true
@@ -89,6 +91,11 @@ skills = ["google-deepmind/science-skills@uv"]
 description = "Every configured skill profile."
 includes = ["*"]
 ```
+
+`active.profile` explicitly selects the profile used by `make install`,
+`make switch`, and `make dry-run` when `PROFILE` is not supplied. An explicit
+`PROFILE=name` overrides it for that invocation; `make list` reports a warning
+when the installed skills do not match the configured active profile.
 
 Every profile has a human-readable `description`, shown by `make profiles`.
 The coordinator groups npx entries from the same package into one command. The
@@ -160,12 +167,12 @@ the rest.
 
 ```text
 make clone           Clone missing source checkouts declared with a git_url
-make install         Install PROFILE (default: full)
-make switch          Switch the installation to PROFILE
+make install         Install active.profile (or the PROFILE override)
+make switch          Switch to active.profile (or the PROFILE override)
 make profiles        List configured profiles
 make update          Update npx skills and fast-forward source checkouts
 make clean           Remove configured npx skills and every coordinator symlink
-make list            Show source state, installed skills by kind, matching profile
+make list            Show configured active profile and installed profile match
 make audit           Compare installed skill content with review records
 make dry-run         Preview a profile switch
 make test            Run the test suite

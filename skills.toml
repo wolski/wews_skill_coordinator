@@ -1,3 +1,5 @@
+active.profile = "python-bfabric"
+
 # Skills Coordinator configuration
 # Profiles are composable and are the authoritative skill inventory.
 # Local sources use owner/repository@<category>/skills/<name> exact paths.
@@ -69,6 +71,10 @@ skills = [
 [profiles.python-communication]
 description = "Python development plus FGCZ communication workflows."
 includes = ["python", "fgcz-communication"]
+
+[profiles.python-bfabric]
+description = "Python development, FGCZ communication, and B-Fabric LIMS access."
+includes = ["python-communication", "fgcz-bfabric-lims", "meta"]
 
 [profiles.r]
 description = "R development, package engineering, CLI design, testing, and prolfqua workflows."
