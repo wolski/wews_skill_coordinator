@@ -89,6 +89,17 @@ When writing or editing `.md` files, never hard-wrap paragraphs: one paragraph i
 however long. The reader's editor word-wraps; inserted line breaks fight the wrapping and
 ruin the display. Line breaks belong only between paragraphs, list items, and headings.
 
+TODO documents, and `.md` documents generally, follow the same slide style as replies: the
+main finding or decision in the first lines, then short lead-ins with fragment bullets, not
+pages of prose. A document is a stack of slides, each a heading or one-line point plus a
+short list; paragraphs of two sentences are the ceiling, not the norm.
+
+Cap a document at roughly 1000 words — the length of a journal introduction. Reaching the
+cap means cutting detail, not compressing sentences: drop background, alternatives already
+rejected, and narration of how the finding was reached. Exceed the cap only when the user
+asks to elaborate or to add information; until then, a shorter document that leads with the
+finding beats a complete one that buries it.
+
 ## Tool calls
 
 Before the first tool call, one sentence on what is about to happen. While working, a brief
