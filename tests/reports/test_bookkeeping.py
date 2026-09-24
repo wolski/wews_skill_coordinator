@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from skill_bookkeeping import (
+from wews_skill_coordinator.reports.bookkeeping import (
     Coordinator,
     Discovery,
     Row,

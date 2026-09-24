@@ -99,9 +99,11 @@ class Found:
 class Discovery:
     """Everything the walk found, including the links it refused to follow."""
 
-    files: list[Found] = field(default_factory=list)
-    skipped_links: list[tuple[str, str, str]] = field(default_factory=list)
-    unreadable: list[tuple[str, str]] = field(default_factory=list)
+    files: list[Found] = field(default_factory=list[Found])
+    skipped_links: list[tuple[str, str, str]] = field(
+        default_factory=list[tuple[str, str, str]]
+    )
+    unreadable: list[tuple[str, str]] = field(default_factory=list[tuple[str, str]])
 
 
 # ── Discovery ────────────────────────────────────────────────────────
@@ -221,8 +223,8 @@ def read_frontmatter(text: str) -> tuple[str, str]:
 def _local(timestamp: float | None) -> dt.datetime:
     """A timezone-aware local datetime, for a POSIX timestamp or for now."""
     if timestamp is None:
-        return dt.datetime.now(tz=dt.timezone.utc).astimezone()
-    return dt.datetime.fromtimestamp(timestamp, tz=dt.timezone.utc).astimezone()
+        return dt.datetime.now(tz=dt.UTC).astimezone()
+    return dt.datetime.fromtimestamp(timestamp, tz=dt.UTC).astimezone()
 
 
 def _git(cwd: Path, *arguments: str) -> str:

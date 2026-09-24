@@ -7,14 +7,13 @@ import datetime as dt
 from dataclasses import fields
 from pathlib import Path
 
-from claude_memory import (
+from wews_skill_coordinator.memory.store import (
     MemoryRow,
     Store,
     annotate,
     find_relocation,
     find_stores,
     index_directories,
-    prune,
     read_metadata,
     render_markdown,
     resolve_slug,
@@ -220,36 +219,6 @@ class TestAnnotate:
         stores = find_stores(tmp_path / "store", search_root=tmp_path)
         far_future = TODAY + dt.timedelta(days=400)
         assert {row.verdict for row in annotate(stores, far_future, 90)} == {"STALE"}
-
-
-class TestPrune:
-    def _two_stores(self, tmp_path: Path) -> list[Store]:
-        target = tmp_path / "live"
-        target.mkdir()
-        make_store(tmp_path / "store", slug_of(target).lstrip("-"), facts={"a": fact("a")})
-        make_store(tmp_path / "store", "absent-xyz", facts={"b": fact("b")})
-        return find_stores(tmp_path / "store", search_root=tmp_path)
-
-    def test_a_dry_run_deletes_nothing(self, tmp_path: Path) -> None:
-        stores = self._two_stores(tmp_path)
-        removed, reclaimed = prune(stores, dry_run=True)
-        assert removed == 1
-        assert reclaimed > 0
-        assert all(store.directory.is_dir() for store in stores)
-
-    def test_only_the_unclaimed_store_is_removed(self, tmp_path: Path) -> None:
-        stores = self._two_stores(tmp_path)
-        prune(stores, dry_run=False)
-        surviving = [store for store in stores if store.directory.is_dir()]
-        assert [store.removable for store in surviving] == [False]
-
-    def test_a_moved_project_survives_a_prune(self, tmp_path: Path) -> None:
-        (tmp_path / "elsewhere" / "absent-xyz").mkdir(parents=True)
-        make_store(tmp_path / "store", "absent-xyz", facts={"b": fact("b")})
-        stores = find_stores(tmp_path / "store", search_root=tmp_path)
-        removed, _ = prune(stores, dry_run=False)
-        assert removed == 0
-        assert stores[0].directory.is_dir()
 
 
 class TestOutputs:

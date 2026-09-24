@@ -1,10 +1,6 @@
 # AGENTS.md
 
-This repository owns Wolski-authored skills and coordinates their installation
-alongside authoritative third-party skills. Packages declared under `[sources]`
-in `skills.toml` are symlinked from a working copy on this machine; every other
-package is installed with the pinned `npx skills` CLI. Both kinds land in the
-same layout, for Claude Code and Codex.
+This repository owns Wolski-authored skills and coordinates their installation alongside authoritative third-party skills with the `coord` CLI. A source in `skills.toml` with a `path` is symlinked from a working copy on this machine; a source without one is installed with the pinned `npx skills` CLI. Both kinds land in the same layout, for Claude Code and Codex.
 
 Precedence: the closest `AGENTS.md` wins and applies to its subtree.
 
@@ -25,54 +21,32 @@ Precedence: the closest `AGENTS.md` wins and applies to its subtree.
   A skill must not read resources from a sibling skill or category.
 - Category folders are organizational source boundaries, not Claude plugins. The
   repository root composes them through `skills.toml`.
-- Coordinator behavior, and every CLI command, belongs in `skill_coordinator.py`
-  and `test_skill_coordinator.py`. The read-only inventory scan belongs in
-  `skill_bookkeeping.py` and `test_skill_bookkeeping.py`; it never installs,
-  moves, or deletes anything. The Claude memory inventory belongs in
-  `claude_memory.py` and `test_claude_memory.py`; it deletes only under `--prune`,
-  and only a store whose project cannot be found anywhere.
-- `skill_coordinator` imports `skill_bookkeeping` and `claude_memory`, never the
-  reverse, and those two never import each other. The coordinator owns
-  `skills.toml` and the CLI, so it builds the `Coordinator` view the skill scan
-  consumes; neither scan imports anything from this repository.
-- Configuration, command aliases, and documentation belong in `skills.toml`,
-  `Makefile`, `README.md`, `AGENTS.md`, and `CLAUDE.md`.
+- Code lives in `src/wews_skill_coordinator/`, tests in `tests/` mirroring it:
+  - `cli.py`: command names, help texts, and argument handling only; the only module that knows commands.
+  - `skills/`, `plugins/`, `agent_config/`, `memory/`, `reports/`: independent domains, named after what they handle. `coord install skills` and `coord clean skills` both call `skills/`.
+  - `config/`: the `skills.toml` schema, loader, and source checkouts.
+  - `disposal.py`: the shared list-ask-remove step (`n` keep, `b` back up, `y` delete).
+  - `paths.py`, `console.py`: foundation. Modules read `paths.NAME` at call time so tests can repoint it.
+- Imports point one way: `cli` → domains → `config` → `paths` / `console`. Domains never import each other. `memory/store.py` and `reports/bookkeeping.py` import nothing from this repository; `reports/view.py` builds the view the skill scan consumes. `uv run lint-imports` enforces this.
+- `reports/bookkeeping.py` and `memory/store.py` never install, move, or delete anything. Removal happens only in `disposal.py`, after listing what will go and asking `n|b|y`; `n` is the default and a dry run never asks.
+- Configuration and documentation belong in `skills.toml`, `pyproject.toml`, `README.md`, `AGENTS.md`, and `CLAUDE.md`.
 
 ## Workflow
 
-1. `make install` or `make switch PROFILE=...` resolves a profile in `skills.toml`.
-2. A skill that changed installation kind loses its old entry first. Remaining
-   npx packages are installed, then local skills are symlinked into
-   `~/.agents/skills/<name>` with a `~/.claude/skills/<name>` link beside them.
-3. Configured skills outside the profile are removed only after additions succeed:
-   npx names through the CLI, local names by unlinking.
-4. `make clone` fetches missing source checkouts; `make update` updates npx skills
-   and fast-forwards each checkout that declares a `git_url`.
-5. `make bookkeeping`, or `skill_coordinator.py bookkeeping ROOT`, scans for every
-   `SKILL.md`, records whether each is a real file, a symlink, or an alias, and
-   who manages it, then writes a CSV, a Markdown report, and an HTML rendering.
-6. `make memory` reports Claude Code's per-project memory stores the same way,
-   resolving each slug back to a directory. `make memory-prune` removes only the
-   stores nothing claims; `DRY_RUN=1` previews and must write nothing.
+1. `coord install skills` (or `--profile NAME`) resolves a profile in `skills.toml` and installs exactly its skills. It removes nothing and never inspects what else is on disk.
+2. A skill that changed installation kind loses its old entry first. Remaining npx packages are installed, then local skills are symlinked into `~/.agents/skills/<name>` with a `~/.claude/skills/<name>` link beside them.
+3. `coord clean skills` removes every symlink in `~/.agents/skills` and every npx skill, without reading `skills.toml`. Switching profiles is `coord clean skills && coord install`.
+4. `coord update` clones missing source checkouts, fast-forwards each checkout that declares a `git_url`, and updates npx skills.
+5. `coord report bookkeeping [ROOT]` scans for every `SKILL.md`, records whether each is a real file, a symlink, or an alias, and who manages it, then writes a CSV, a Markdown report, and an HTML rendering.
+6. `coord report memory` reports Claude Code's per-project memory stores the same way, resolving each slug back to a directory. `coord clean memory` offers the stores nothing claims, `coord clean memory all` every store, and `coord clean skills all PATH` every skill folder under PATH; each lists, then asks `n|b|y`. `--dry-run` lists and must write nothing.
 
-Add local-source skills to topical profiles by their exact source-relative path,
-`owner/repository@<category>/skills/<name>`; flattened local selectors are
-invalid. Add npx-installed skills as `owner/repository@skill-name`. Mirror each
-contributing FGCZ source folder with an independently selectable `fgcz-*`
-profile, then compose broader profiles with `includes`; `full` includes all
-profiles automatically. Add `[package_options."owner/repository"]` only when an
-npx-installed package requires an option such as `full_depth = true`; it may not
-name a source. Add `[sources."owner/repository"]` to install a package from a
-local checkout, with `owned = true` only when this repository owns the skills.
+Every repository is a `[sources.<name>]` block with `repo = "owner/repository"`. Add `path` to install it from a local checkout, with `owned = true` only when this repository authors the skills (the bookkeeping report treats it as authoritative); without `path` it is installed with npx, and `full_depth = true` passes `--full-depth`. A profile is either a base profile or a composition, never both. A base profile lists skills under the source's name — local skills as `<category>/<name>`, npx skills by name — and every skill belongs to exactly one base profile. A composition's `includes` names base profiles only and is never itself included; `full` includes every base profile with `["*"]`. Add a new skill to the one base profile it belongs to, and a new use case as a composition. Mirror each contributing FGCZ source folder with an independently selectable `fgcz-*` base profile.
 
 ## Verification
 
-- Run `make test` after coordinator or profile changes.
-- Run `uvx ruff check` over every module changed, and `make test` covers both
-  test files.
-- Run strict typing with `uv run --with cyclopts --with pydantic --with tomli
-  --with pytest --with markdown --with pyright pyright <changed modules>`.
+- Run `uv run pytest` and `uv run lint-imports` after coordinator or profile changes.
+- Run `uvx ruff check src tests`.
+- Run strict typing with `uv run --with pyright pyright` (strict mode is set in `pyproject.toml`).
 - Validate changed skills with the skill creator's `quick_validate.py` and run
   their deterministic evals or smoke tests when present.
-- Preview a profile change with `make dry-run PROFILE=...` before switching; a
-  dry run must write nothing and must report the same actions a real run takes.
+- Preview a profile change with `coord install skills --profile NAME --dry-run` before switching; a dry run must write nothing and must report the same actions a real run takes.

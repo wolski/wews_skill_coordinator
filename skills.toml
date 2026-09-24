@@ -1,172 +1,80 @@
-active.profile = "python-bfabric"
-
-# Skills Coordinator configuration
-# Profiles are composable and are the authoritative skill inventory.
-# Local sources use owner/repository@<category>/skills/<name> exact paths.
-# Npx packages use owner/repository@skill-name selectors.
+# Skills Coordinator configuration — read by `coord`.
+# `active` is the profile `coord install` installs.
+active = "python-bfabric-proteomics"
 
 [plugins.claude-plugins-official]
 names = ["code-simplifier", "claude-md-management", "code-review", "hookify"]
 
-# Packages installed from a working copy on this machine. Their skills are
-# symlinked, so editing the source is live at once for Claude Code and Codex.
-# Every package absent from this table is installed with the pinned npx CLI.
-[sources."wolski/wews_skill_coordinator"]
+# Sources: a short name per repository, used as the key in profiles.
+# With `path`, skills are symlinked from that working copy, so edits are live
+# at once; list them as <category>/<name>. Without `path`, the package is
+# installed with the pinned npx CLI; list skills by name.
+
+[sources.wews]
+repo = "wolski/wews_skill_coordinator"
 path = "skills"
 owned = true
 
-[sources."fgcz/skills"]
+[sources.fgcz]
+repo = "fgcz/skills"
 path = "repos/fgcz-skills"
 git_url = "https://github.com/fgcz/skills.git"
 
+[sources.marimo]
+repo = "marimo-team/skills"
+
+[sources.deepmind]
+repo = "google-deepmind/science-skills"
+
+[sources.posit]
+repo = "posit-dev/skills"
+
+[sources.anthropic]
+repo = "anthropics/skills"
+
+[sources.agent-rules]
+repo = "netresearch/agent-rules-skill"
+
+[sources.wshobson]
+repo = "wshobson/agents"
+
+# Compositions: what you install. A composition lists base profiles only and
+# is never included by another profile. `full` includes every base profile.
+
 [profiles.full]
-description = "Every configured skill profile."
+description = "Every base profile."
 includes = ["*"]
 
-[profiles.python-design]
-description = "Wolski's Python style and bounded design guidance, plus public Clean Architecture."
-skills = [
-    "wolski/wews_skill_coordinator@software-engineering/skills/python-style-guide",
-    "wolski/wews_skill_coordinator@software-engineering/skills/design-principles",
-    "wolski/wews_skill_coordinator@software-engineering/skills/polymorphism-over-discrimination",
-    "wolski/wews_skill_coordinator@software-engineering/skills/directed-folder-imports",
-    "pproenca/dot-skills@clean-architecture",
-]
-
-[profiles.python-design-public]
-description = "Public Python design-pattern and Clean Architecture guidance, without Wolski skills."
-skills = [
-    "wshobson/agents@python-design-patterns",
-    "pproenca/dot-skills@clean-architecture",
-]
-
-[profiles.marimo]
-description = "Marimo notebook authoring, migration, widgets, batch execution, and background jobs."
-skills = [
-    "marimo-team/skills@marimo-notebook",
-    "marimo-team/skills@marimo-batch",
-    "marimo-team/skills@streamlit-to-marimo",
-    "marimo-team/skills@jupyter-to-marimo",
-    "marimo-team/skills@anywidget-generator",
-    "marimo-team/skills@wasm-compatibility",
-    "marimo-team/skills@add-molab-badge",
-    "marimo-team/skills@implement-paper",
-    "wolski/wews_skill_coordinator@marimo/skills/marimo-background-jobs",
+[profiles.python-bfabric-proteomics]
+description = "Daily FGCZ work: Python design and workflow, B-Fabric, proteomics/PTM analysis."
+includes = [
+    "python-design",
+    "workflow",
+    #"scientific-python",
+    "fgcz-communication",
+    "fgcz-bfabric-lims",
+    "fgcz-proteomics-data-analysis",
+    "meta",
+    "communication",
 ]
 
 [profiles.python]
-description = "Broad Python engineering toolkit with design, workflow, plotting, scientific, and notebook support."
-includes = ["python-design", "marimo"]
-skills = [
-    "wolski/wews_skill_coordinator@software-engineering/skills/general-agentic",
-    "wolski/wews_skill_coordinator@workflow-development/skills/mixed-r-python-pipeline",
-    "wolski/wews_skill_coordinator@workflow-development/skills/snakemake-compact",
-    "wolski/wews_skill_coordinator@workflow-development/skills/shell-scripting",
-    "wolski/wews_skill_coordinator@workflow-development/skills/pixi-package-manager",
-    "wolski/wews_skill_coordinator@scientific-python/skills/scverse",
-    "wolski/wews_skill_coordinator@scientific-python/skills/plotly",
-    "google-deepmind/science-skills@uv",
-]
-
-[profiles.python-communication]
-description = "Python development plus FGCZ communication workflows."
-includes = ["python", "fgcz-communication"]
-
-[profiles.python-bfabric]
-description = "Python development, FGCZ communication, and B-Fabric LIMS access."
-includes = ["python-communication", "fgcz-bfabric-lims", "meta"]
-
-[profiles.r]
-description = "R development, package engineering, CLI design, testing, and prolfqua workflows."
-skills = [
-    "wolski/wews_skill_coordinator@r-development/skills/r-development",
-    "wolski/wews_skill_coordinator@r-development/skills/advanced-r-engineering",
-    "posit-dev/skills@r-package-development",
-    "posit-dev/skills@testing-r-packages",
-    "posit-dev/skills@r-cli-app",
-    "posit-dev/skills@cli",
-    "posit-dev/skills@lifecycle",
-    "wolski/wews_skill_coordinator@r-development/skills/bookdown",
-    "fgcz/skills@proteomics-data-analysis/skills/prolfquapp-dea",
-    "fgcz/skills@proteomics-data-analysis/skills/adding-models-to-prolfqua",
+description = "Python design, workflow tooling, and plotting."
+includes = [
+    "python-design",
+    "workflow",
+    "scientific-python",
 ]
 
 [profiles.science]
-description = "Scientific Python analysis plus literature, sequence, structure, pathway, and expression databases."
-skills = [
-    "wolski/wews_skill_coordinator@scientific-python/skills/scverse",
-    "wolski/wews_skill_coordinator@scientific-python/skills/plotly",
-    "google-deepmind/science-skills@uv",
-    "google-deepmind/science-skills@uniprot-database",
-    "google-deepmind/science-skills@pubmed-database",
-    "google-deepmind/science-skills@literature-search-europepmc",
-    "google-deepmind/science-skills@literature-search-openalex",
-    "google-deepmind/science-skills@ensembl-database",
-    "google-deepmind/science-skills@ncbi-sequence-fetch",
-    "google-deepmind/science-skills@pdb-database",
-    "google-deepmind/science-skills@alphafold-database-fetch-and-analyze",
-    "google-deepmind/science-skills@protein-sequence-similarity-search",
-    "google-deepmind/science-skills@protein-sequence-msa",
-    "google-deepmind/science-skills@string-database",
-    "google-deepmind/science-skills@reactome-database",
-    "google-deepmind/science-skills@human-protein-atlas-database",
-    "google-deepmind/science-skills@gtex-database",
-]
-
-[profiles.fgcz-bfabric-lims]
-description = "FGCZ B-Fabric LIMS access and dataset operations."
-skills = [
-    "fgcz/skills@bfabric-lims/skills/bfabric-connect",
-    "fgcz/skills@bfabric-lims/skills/bfabric-query",
-    "fgcz/skills@bfabric-lims/skills/bfabric-tools",
-    "fgcz/skills@bfabric-lims/skills/bfabric-dataset",
-]
-
-[profiles.fgcz-communication]
-description = "FGCZ communication and requirements-elaboration workflows."
-skills = [
-    "fgcz/skills@communication/skills/interview-to-spec",
-]
-
-[profiles.fgcz-infrastructure]
-description = "FGCZ infrastructure, GitLab, modules, and B-Fabric application execution."
-skills = [
-    "fgcz/skills@fgcz-infrastructure/skills/bfabric-app-runner",
-    "fgcz/skills@fgcz-infrastructure/skills/fgcz-gitlab",
-    "fgcz/skills@fgcz-infrastructure/skills/fgcz-modules",
-]
-
-[profiles.fgcz-meta-skills]
-description = "FGCZ context, governance, contribution, verification, and process guidance."
-skills = [
-    "fgcz/skills@meta-skills/skills/fgcz-context",
-    "fgcz/skills@meta-skills/skills/constitution",
-    "fgcz/skills@meta-skills/skills/skill-contribution",
-    "fgcz/skills@meta-skills/skills/verification-loops",
-    "fgcz/skills@meta-skills/skills/create-pull-request",
-    "fgcz/skills@meta-skills/skills/lessons-compounder",
-]
-
-[profiles.fgcz-proteomics-data-analysis]
-description = "FGCZ proteomics modelling, differential analysis, PTM analysis, and pipeline repair."
-skills = [
-    "fgcz/skills@proteomics-data-analysis/skills/phosphoproteomics-ptm-analysis",
-    "fgcz/skills@proteomics-data-analysis/skills/prolfquapp-dea",
-    "fgcz/skills@proteomics-data-analysis/skills/adding-models-to-prolfqua",
-    "fgcz/skills@proteomics-data-analysis/skills/fix-prolfqua-dea-app",
-    "fgcz/skills@proteomics-data-analysis/skills/fix-ptm-pipeline",
-    "fgcz/skills@proteomics-data-analysis/skills/run-ptm-pipeline",
-]
-
-[profiles.proteomics]
-description = "Proteomics conversion, differential analysis, PTM analysis, B-Fabric, and pipeline repair."
-includes = ["fgcz-bfabric-lims", "fgcz-proteomics-data-analysis"]
-skills = [
-    "fgcz/skills@fgcz-infrastructure/skills/bfabric-app-runner",
+description = "Scientific Python plus literature, sequence, structure, and pathway databases."
+includes = [
+    "scientific-python",
+    "science-databases",
 ]
 
 [profiles.fgcz]
-description = "Every configured FGCZ source-folder profile."
+description = "Every FGCZ source folder."
 includes = [
     "fgcz-bfabric-lims",
     "fgcz-communication",
@@ -175,21 +83,153 @@ includes = [
     "fgcz-proteomics-data-analysis",
 ]
 
+# Base profiles: concrete skills, listed under their source's short name.
+# Every skill has exactly one base profile.
+
+[profiles.python-design]
+description = "Wolski's bounded Python design guidance."
+wews = [
+    "software-engineering/constructor-or-dataclass",
+    #"software-engineering/design-principles",
+    "software-engineering/polymorphism-over-discrimination",
+    "software-engineering/directed-folder-imports",
+    "software-engineering/polars-first",
+]
+
+[profiles.python-style]
+description = "Wolski's Python style guide, kept out of the default profiles."
+wews = ["software-engineering/python-style-guide"]
+
+[profiles.python-design-public]
+description = "Public Python design-pattern guidance, without Wolski skills."
+wshobson = ["python-design-patterns"]
+
+[profiles.workflow]
+description = "Pipelines and environments: Snakemake, mixed R/Python packaging, shell, pixi, uv."
+wews = [
+    "workflow-development/mixed-r-python-pipeline",
+    "workflow-development/snakemake-compact",
+    "workflow-development/shell-scripting",
+    #"workflow-development/pixi-package-manager",
+]
+deepmind = ["uv"]
+
+[profiles.scientific-python]
+description = "Single-cell analysis and Plotly visualisation."
+wews = [
+    "scientific-python/scverse",
+    "scientific-python/plotly",
+]
+
+[profiles.science-databases]
+description = "Literature, sequence, structure, pathway, and expression databases."
+deepmind = [
+    "uniprot-database",
+    "pubmed-database",
+    "literature-search-europepmc",
+    "literature-search-openalex",
+    "ensembl-database",
+    "ncbi-sequence-fetch",
+    "pdb-database",
+    "alphafold-database-fetch-and-analyze",
+    "protein-sequence-similarity-search",
+    "protein-sequence-msa",
+    "string-database",
+    "reactome-database",
+    "human-protein-atlas-database",
+    "gtex-database",
+]
+
+[profiles.marimo]
+description = "Marimo notebook authoring, migration, widgets, batch execution, and background jobs."
+marimo = [
+    "marimo-notebook",
+    "marimo-batch",
+    "streamlit-to-marimo",
+    "jupyter-to-marimo",
+    "anywidget-generator",
+    "wasm-compatibility",
+    "add-molab-badge",
+    "implement-paper",
+]
+wews = ["marimo/marimo-background-jobs"]
+
+[profiles.r]
+description = "R development, package engineering, CLI design, and testing."
+wews = [
+    "r-development/r-development",
+    "r-development/advanced-r-engineering",
+    "r-development/bookdown",
+]
+posit = [
+    "r-package-development",
+    "testing-r-packages",
+    "r-cli-app",
+    "cli",
+    "lifecycle",
+]
+
+[profiles.fgcz-bfabric-lims]
+description = "FGCZ B-Fabric LIMS access and dataset operations."
+fgcz = [
+    "bfabric-lims/bfabric-connect",
+    "bfabric-lims/bfabric-query",
+    "bfabric-lims/bfabric-tools",
+    "bfabric-lims/bfabric-dataset",
+]
+
+[profiles.fgcz-communication]
+description = "FGCZ communication and requirements-elaboration workflows."
+fgcz = ["communication/interview-to-spec"]
+
+[profiles.fgcz-infrastructure]
+description = "FGCZ infrastructure, GitLab, modules, and B-Fabric application execution."
+fgcz = [
+    "fgcz-infrastructure/bfabric-app-runner",
+    "fgcz-infrastructure/fgcz-gitlab",
+    "fgcz-infrastructure/fgcz-modules",
+]
+
+[profiles.fgcz-meta-skills]
+description = "FGCZ context, governance, contribution, verification, and process guidance."
+fgcz = [
+    "meta-skills/fgcz-context",
+    "meta-skills/constitution",
+    "meta-skills/skill-contribution",
+    "meta-skills/verification-loops",
+    "meta-skills/create-pull-request",
+    "meta-skills/lessons-compounder",
+]
+
+[profiles.fgcz-proteomics-data-analysis]
+description = "FGCZ proteomics modelling, differential analysis, and DEA application repair."
+fgcz = [
+    "proteomics-data-analysis/prolfquapp-dea",
+    "proteomics-data-analysis/adding-models-to-prolfqua",
+    "proteomics-data-analysis/fix-prolfqua-dea-app",
+]
+
+[profiles.communication]
+description = "Outreach to other researchers in Witold's name."
+wews = ["communication/scientific-outreach"]
+
 [profiles.review]
 description = "Multi-perspective code review, finding verification, and software-manuscript review."
-skills = [
-    "wolski/wews_skill_coordinator@review/skills/multiagent-review",
-    "wolski/wews_skill_coordinator@review/skills/verify-review-findings",
-    "wolski/wews_skill_coordinator@review/skills/software-manuscript-review",
+wews = [
+    "review/multiagent-review",
+    "review/verify-review-findings",
+    "review/software-manuscript-review",
 ]
 
 [profiles.meta]
 description = "Skill creation and repository-level agent instruction authoring."
-skills = [
-    "anthropics/skills@skill-creator",
-    "netresearch/agent-rules-skill@agent-rules",
-]
+anthropic = ["skill-creator"]
+agent-rules = ["agent-rules"]
 
 [profiles.education]
 description = "Generate structured school summaries, learning objectives, and practice materials."
-skills = ["wolski/wews_skill_coordinator@education/skills/school-study-materials"]
+wews = ["education/school-study-materials"]
+
+[profiles.experimental]
+description = "Skills still under development in this repository."
+wews = ["experimental/create-appnote-outline"]

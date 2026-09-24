@@ -16,7 +16,6 @@ from __future__ import annotations
 import csv
 import datetime as dt
 import re
-import shutil
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
@@ -73,9 +72,9 @@ class Store:
     directory: Path
     project: Path | None
     index: Path | None
-    facts: list[Path] = field(default_factory=list)
-    dangling_index_entries: list[str] = field(default_factory=list)
-    moved_to: list[Path] = field(default_factory=list)
+    facts: list[Path] = field(default_factory=list[Path])
+    dangling_index_entries: list[str] = field(default_factory=list[str])
+    moved_to: list[Path] = field(default_factory=list[Path])
 
     @property
     def exists(self) -> bool:
@@ -281,7 +280,7 @@ def annotate(stores: list[Store], today: dt.date, stale_days: int) -> list[Memor
             )
             stat = path.stat()
             modified = dt.datetime.fromtimestamp(
-                stat.st_mtime, tz=dt.timezone.utc
+                stat.st_mtime, tz=dt.UTC
             ).astimezone()
             row = MemoryRow(
                 slug=store.slug,
@@ -415,7 +414,7 @@ def render_markdown(
         "## Removable — nothing claims this memory",
         "",
         "The slug resolves to no directory, and no directory of that name exists",
-        "elsewhere. Remove with `--prune`; preview with `--prune --dry-run`.",
+        "elsewhere. Remove with `coord clean memory`; list only with `--dry-run`.",
         "",
     ]
     if gone:
@@ -440,7 +439,7 @@ def render_markdown(
             "## Kept — the project looks moved, not deleted",
             "",
             "The slug path is gone, but a directory with the same name exists",
-            "elsewhere. `--prune` leaves these alone; decide each one yourself.",
+            "elsewhere. `coord clean memory` leaves these alone; decide each one yourself.",
             "",
             "| Slug | Facts | Now probably at |",
             "| --- | ---: | --- |",
@@ -513,32 +512,6 @@ def render_html(markdown_text: str, title: str) -> str:
     )
 
 
-# ── Pruning ──────────────────────────────────────────────────────────
-
-
-def prune(stores: list[Store], *, dry_run: bool) -> tuple[int, int]:
-    """Delete every store nothing can claim. Returns ``(stores, bytes)``.
-
-    Removes only a store whose slug resolves nowhere *and* whose project name turns
-    up nowhere else. A store whose project still exists, or merely looks moved, is
-    left alone — as is a stale one, because staleness is a judgement this scan is
-    not entitled to make.
-    """
-    removed = reclaimed = 0
-    for store in sorted(stores, key=lambda item: item.slug):
-        if not store.removable:
-            continue
-        size = sum(
-            path.stat().st_size for path in store.directory.rglob("*") if path.is_file()
-        )
-        print(f"  {'would remove' if dry_run else 'removed'}  {store.directory}")
-        if not dry_run:
-            shutil.rmtree(store.directory)
-        removed += 1
-        reclaimed += size
-    return removed, reclaimed
-
-
 # ── Entry point ──────────────────────────────────────────────────────
 
 
@@ -548,12 +521,10 @@ def run(
     *,
     stale_days: int = 90,
     html: bool = True,
-    prune_missing: bool = False,
-    dry_run: bool = False,
 ) -> list[MemoryRow]:
-    """Scan ``root``, write the reports, optionally prune unresolvable stores."""
+    """Scan ``root`` and write the reports. Deletes nothing; see memory.cleanup."""
     stores = find_stores(root)
-    today = dt.datetime.now(tz=dt.timezone.utc).astimezone().date()
+    today = dt.datetime.now(tz=dt.UTC).astimezone().date()
     rows = annotate(stores, today, stale_days)
     generated = today.strftime("%Y-%m-%d")
 
@@ -578,9 +549,4 @@ def run(
     for verdict, count in sorted(tally.items(), key=lambda item: (-item[1], item[0])):
         print(f"  {count:4d}  {verdict}")
 
-    if prune_missing:
-        print()
-        removed, reclaimed = prune(stores, dry_run=dry_run)
-        verb = "would free" if dry_run else "freed"
-        print(f"  {removed} stores, {verb} {reclaimed:,} bytes")
     return rows

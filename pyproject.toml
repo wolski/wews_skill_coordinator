@@ -1,0 +1,67 @@
+[project]
+name = "wews-skill-coordinator"
+version = "0.1.0"
+description = "Install switchable skill profiles from npx packages and local checkouts."
+readme = "README.md"
+authors = [
+    { name = "Witold Wolski", email = "wewolski@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "cyclopts>=5",
+    "markdown",
+    "pydantic>=2",
+    "rich",
+]
+
+[project.scripts]
+coord = "wews_skill_coordinator.cli:app"
+
+[dependency-groups]
+dev = [
+    "import-linter>=2.1",
+    "pytest",
+    "pytest-mock",
+]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.13"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.importlinter]
+root_package = "wews_skill_coordinator"
+
+[[tool.importlinter.contracts]]
+name = "cli composes independent domains over config and the foundation"
+type = "layers"
+layers = [
+    "wews_skill_coordinator.cli",
+    "wews_skill_coordinator.skills | wews_skill_coordinator.plugins | wews_skill_coordinator.agent_config | wews_skill_coordinator.memory | wews_skill_coordinator.reports",
+    "wews_skill_coordinator.config | wews_skill_coordinator.disposal",
+    "wews_skill_coordinator.paths | wews_skill_coordinator.console",
+]
+
+[[tool.importlinter.contracts]]
+name = "the memory and skill scans import nothing from this repository"
+type = "forbidden"
+source_modules = [
+    "wews_skill_coordinator.memory.store",
+    "wews_skill_coordinator.reports.bookkeeping",
+]
+forbidden_modules = [
+    "wews_skill_coordinator.cli",
+    "wews_skill_coordinator.config",
+    "wews_skill_coordinator.console",
+    "wews_skill_coordinator.disposal",
+    "wews_skill_coordinator.paths",
+    "wews_skill_coordinator.skills",
+    "wews_skill_coordinator.plugins",
+    "wews_skill_coordinator.agent_config",
+]
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "strict"
