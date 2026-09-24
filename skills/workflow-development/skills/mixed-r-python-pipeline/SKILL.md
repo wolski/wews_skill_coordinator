@@ -38,10 +38,10 @@ my-pipeline init /path/to/new/project
 
 ## Reference Implementation
 
-**ptm-pipeline** (if available at `/Users/wolski/projects/ptm-pipeline`):
+**ptm-pipeline** (if available at `/Users/wolski/projects/prolfqua_fml/ptm-pipeline`):
 
 Key files to study:
-- `src/ptm_pipeline/cli.py` - Click commands
+- `src/ptm_pipeline/cli.py` - cyclopts commands
 - `src/ptm_pipeline/discover.py` - Glob-based data discovery
 - `src/ptm_pipeline/init.py` - Template copying logic
 - `src/ptm_pipeline/config.py` - YAML generation
@@ -74,7 +74,7 @@ Create in `src/my_pipeline/`:
 
 | Module | Purpose |
 |--------|---------|
-| `cli.py` | Click commands: init, validate, update, clean, info |
+| `cli.py` | cyclopts commands: init, validate, update, clean, info |
 | `discover.py` | Auto-detect data folders with glob patterns |
 | `init.py` | Copy template, generate config |
 | `config.py` | YAML config generation |
@@ -87,7 +87,7 @@ Create in `src/my_pipeline/`:
 [project]
 name = "my-pipeline"
 version = "0.1.0"
-dependencies = ["click>=8.0", "pyyaml>=6.0", "rich>=13.0"]
+dependencies = ["cyclopts>=4.5", "pyyaml>=6.0", "rich>=13.0"]
 
 [project.scripts]
 my-pipeline = "my_pipeline.cli:main"

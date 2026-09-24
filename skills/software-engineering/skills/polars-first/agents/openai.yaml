@@ -1,0 +1,4 @@
+interface:
+  display_name: "Polars First"
+  short_description: "Simplify Polars pipelines and remove redundant machinery"
+  default_prompt: "Use $polars-first to simplify this Polars pipeline while preserving its data and diagnostics."

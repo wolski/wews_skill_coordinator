@@ -25,9 +25,9 @@ guard clauses is worse than no review, because it teaches the reader to distrust
 
 ## When the task is a design review, start earlier
 
-**Opus- and Fable-class models only.** This protocol needs design judgement the sweep below does
-not have. A smaller model runs the mechanical sweep, reports its output, and states plainly that
-the design question was not asked — it does not guess a target model.
+This protocol needs design judgement the sweep below does not have. If you were delegated only
+the mechanical sweep, report its output and state plainly that the design question was not asked
+— do not guess a target model.
 
 The shapes and bounds below judge branches one at a time. A design review asks a prior question:
 **what decides what, and where?** Before any sweep, build the decision inventory — one row per
@@ -50,8 +50,7 @@ Then two rules:
 The review's first deliverable is the **target object model**: the two or three lines the caller
 should write. State it before enumerating findings; each finding is then a delta from that
 model. A review that grades branches without stating the model has answered this skill's
-question and not the review's — that is the difference between an audit and a design review, and
-it was learned by failing it.
+question and not the review's — that is the difference between an audit and a design review.
 
 ## Get the worklist mechanically
 
@@ -144,8 +143,17 @@ payload**. Quick proxy: the condition compares a field to a **literal** (`self.m
 **B5 — Two arms that will demonstrably never grow.** Say so and move on.
 
 **And one destination that is not a defect:** a single dispatch point at a factory or composition
-root is right. A `dict[str, Handler]` with one lookup is the cure. The smell is the same case set
-appearing *again* past that lookup.
+root is right. A `dict[str, Handler]` with one lookup is the cure. When a strategy needs runtime
+configuration, the values may instead be factories that bind that configuration and return the
+same `Handler` contract. The smell is the same case set appearing *again* past that lookup, or the
+returned handler carrying its selection token downstream so another layer can dispatch on it.
+
+A meta-selection such as `"all"` is also legitimate orchestration at this boundary. It expands one
+request into several already-defined strategies; it does not define a new strategy and does not
+belong in the numerical or domain behaviour. Keep the vocabularies distinct — for example,
+`StrategyName` for executable strategies and `StrategySelection = StrategyName | Literal["all"]`
+for the composition root — so `"all"` cannot accidentally flow into code that expects one
+behaviour.
 
 Two qualifications, both from a review this bound derailed. It holds only when that dispatch is
 the **only** one answering its question: two single dispatch points keyed on properties of the
@@ -238,7 +246,10 @@ any edit. Asking them late means writing a full remedy before discovering it was
 5. **Put the method on each class, and return the result — not a token naming it.**
 6. **Write the factory.** A union with nothing to construct it is not finished. It is also where an
    unimplemented variant fails: a mode declared in the schema with no runtime class is a missing
-   registry entry, raising once at construction time instead of partway through the work.
+   registry entry, raising once at construction time instead of partway through the work. Registry
+   values can be ready instances for fixed strategies or construction callables for configured
+   strategies. Bind variant-specific options here and return one uniform runtime contract; do not
+   make consumers inspect the strategy name to recover those options.
 7. **Delete the branches.** If any survive, the polymorphism moved rather than happened.
 
 **Do not stop at step 4.** Splitting a type without moving behaviour onto it produces shape 4 —

@@ -994,9 +994,7 @@ pixi run --environment remote train
 - **UV Package Manager**: https://github.com/astral-sh/uv
 
 ### Complementary Skills
-- **scientific-python-packaging**: Modern Python packaging patterns
-- **scientific-python-testing**: Testing strategies with pytest
-- **uv-package-manager**: Fast pure-Python package management
+- **uv**: pure-Python package management
 
 ### Learning Resources
 - **Pixi Examples**: https://github.com/prefix-dev/pixi/tree/main/examples

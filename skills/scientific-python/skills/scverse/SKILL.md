@@ -277,7 +277,8 @@ sc.pp.log1p(adata)
 sc.pp.highly_variable_genes(
     adata,
     n_top_genes=2000,          # Select top 2000 HVGs
-    flavor="seurat_v3",        # Method (seurat, seurat_v3, cell_ranger)
+    flavor="seurat_v3",        # seurat_v3 expects raw counts, hence layer="counts"
+    layer="counts",
     batch_key="sample"         # Optional: per-batch HVG selection
 )
 
@@ -308,7 +309,7 @@ adata.layers["scaled"] = sc.pp.scale(adata, copy=True).X
 
 ```python
 # Run PCA on HVGs
-sc.tl.pca(adata, n_comps=50, use_highly_variable=True)
+sc.tl.pca(adata, n_comps=50, mask_var="highly_variable")
 
 # Results stored in:
 # - adata.obsm["X_pca"]: cell embeddings

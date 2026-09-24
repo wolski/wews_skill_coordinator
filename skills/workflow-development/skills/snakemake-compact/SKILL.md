@@ -1,6 +1,6 @@
 ---
 name: snakemake-compact
-description: Compact Snakemake workflow patterns. Keep rules short, complex logic in Python modules.
+description: Compact Snakemake workflow patterns - short rules, logic in helper modules, named IO, config/params wiring, rerun-trigger and staleness pitfalls, DAG-driven cleaning. Use when writing, reviewing, or debugging a Snakefile or .smk, or when a rule fails to rerun or reuses stale output.
 ---
 
 # Snakemake Essentials
@@ -13,7 +13,6 @@ description: Compact Snakemake workflow patterns. Keep rules short, complex logi
 ## Basic Rule (quote paths; named IO)
 Use `:q` so file paths with spaces don't break.
 
-Always show details
 ```python
 rule align:
     input:
@@ -159,13 +158,8 @@ rule help:
 
 localrules: help
 
-# Clean rule - prefer the DAG-driven built-in over rm -rf (see "Staleness" below)
-rule clean:
-    """Remove all generated files (only if you need a project-specific clean)."""
-    shell:
-        "snakemake --delete-all-output -j 1"
-
-localrules: clean
+# Clean from the shell, not from a rule (a nested snakemake hits the outer run's lock):
+#   snakemake --delete-all-output
 ```
 
 ## Re-run triggers & staleness (footgun)

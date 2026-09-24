@@ -1,0 +1,23 @@
+{
+  "skill_name": "polars-first",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review this proposed simplification of a Polars duplicate resolver. It currently treats null and empty text as absent, keeps the first present raw value independently in each measurement column for each key, preserves first-seen key order, and parses numeric values afterward. The proposed rewrite casts every measurement to Float64 with strict=False and calls unique(subset=['key'], keep='first'). For key x, the raw rows are (a='bad', b=null), then (a='7', b='3'). For key y, both measurements are absent. Is this equivalent? Describe a smaller native implementation and the focused checks needed. Review only.",
+      "expected_output": "Rejects the proposed change: x must retain raw a='bad' and b='3', and y must remain missing. Suggests absence masking and ordered per-column first-present grouping while deferring numeric parsing. Distinguishes cell resolution from row deduplication and proposes focused semantic checks.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We are reducing code in a Polars package. The facade has exprs = [pl.col(spec.source).cast(spec.dtype).alias(spec.name) for spec in specs], then frame.select(exprs). Should we remove this loop? Also, a proposed Pydantic schema flattening removes 15 Python lines but adds 160 JSON lines and 90 test lines. The facade would still translate into the same runtime types; the existing nested schema already validates all supported combinations. Assess both proposals without editing files.",
+      "expected_output": "Recognizes expression construction as legitimate orchestration already executed by Polars. Assesses the complete schema replacement and retained boundary, finds no demonstrated stage deletion or new validation benefit, and avoids a speculative migration or extra abstraction.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "A custom peptide parser consumes sequence, modifications and sites. It cannot be expressed faithfully with native string operations. A proposed Polars rewrite selects unique sequences, applies map_elements, and joins back on sequence. Unknown-token warnings currently include every original row number, in input order, even when another stage later drops that row. How would you simplify the execution while preserving this contract? Explain how to assess performance. Review only.",
+      "expected_output": "Retains the necessary scalar parser, uses all declared inputs if deduplicating, and separates pure tuple results from row-specific warning expansion. Preserves null handling, original row order, multiplicity and warnings for later-discarded rows. Identifies map_elements as Python execution and requires measured runtime and memory for performance claims.",
+      "files": []
+    }
+  ]
+}

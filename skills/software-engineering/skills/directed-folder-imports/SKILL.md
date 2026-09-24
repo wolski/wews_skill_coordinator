@@ -71,7 +71,10 @@ Do not move files on the first pass.
 3. Identify the actual import root (`src/<package>`, a flat package, or several roots).
 4. Inventory production modules, public entry points, package data/resources, tests, and imports.
 5. Run the project's existing dependency tool first. For Python, prefer Import Linter/Grimp over a
-   new AST walker. Add a tool only after confirming none exists.
+   new AST walker. Add a tool only after confirming none exists. For a plain ES-module tree with no
+   bundler, the equivalent is a short `node:test` walker: regex the static `import`/`export … from`
+   specifiers, resolve them relative to each file, and classify each edge against the law; the
+   same walker becomes the enforcement test.
 6. Record current violations as edges, not impressions:
    `source module -> imported module -> upward | sibling edge | second sibling target | cycle |
    framework leak`.
