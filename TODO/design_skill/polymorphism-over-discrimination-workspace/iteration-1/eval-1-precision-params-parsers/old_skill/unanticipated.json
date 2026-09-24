@@ -1,0 +1,41 @@
+{
+  "run_id": "eval-1-old_skill",
+  "unanticipated_findings": [
+    {
+      "summary": "The one real instance of the pattern in params/ is not an isinstance at all — it is the uses_diann boolean, which re-answers 'is this a DIA-NN-backed FragPipe workflow?' at four separate sites, so the colleague's isinstance grep could never have found it.",
+      "location": "params/parsers/fragpipe.py:540 (derivation), :541, :542, :558, :561 (consumers)",
+      "looks_correct": true,
+      "note": "Verified all five lines: uses_diann = values['diann.run-dia-nn'] == 'true', then passed as a switch into _workflow_identification and _workflow_quantification, then re-consulted for 'DIA-NN' if uses_diann else None and again in the compound condition at :561. This is the most valuable finding in either eval-1 report and no assertion covers it — it is the answer to 'is my colleague right?' that also shows why his metric was the wrong instrument."
+    },
+    {
+      "summary": "The refactor the colleague is asking for is already done at the level where it pays: the largest case set in the subsystem (12 vendor labels) is a dict[str, ParseFn] with a single lookup in get_parser, and no vendor-name comparison survives downstream of it.",
+      "location": "params/registry.py:98-111",
+      "looks_correct": true,
+      "note": "Verified: _REGISTRY at line 98 with exactly 12 keys. The 'zero hits downstream' half is a negative grep claim I did not re-run exhaustively. Rhetorically the strongest move in the report — it reframes the question from 'how many isinstance' to 'where is the case set decided'."
+    },
+    {
+      "summary": "max_precursor_mz is written at fragpipe.py:503 and overwritten at :517 with the same value whenever the charge range is bounded.",
+      "location": "params/parsers/fragpipe.py:503, :517",
+      "looks_correct": true,
+      "note": "Verified in the source. Found independently by both eval-1 runs."
+    },
+    {
+      "summary": "MassTolerance's payload fields are read by nothing except its own validator and the tests: no non-test code branches on .mode, so splitting it would produce two record shapes with no behaviour between them.",
+      "location": "params/model.py:126-154; producers at alphadia.py:104-105, alphapept.py:98, fragpipe.py:372, metamorpheus.py:109",
+      "looks_correct": true,
+      "note": "A negative grep claim I did not re-run, but with_skill reached the identical conclusion by the same method, and the cited producer sites are the kind of detail that is hard to fabricate. This is the reasoning that makes the b4 verdict earned rather than lucky."
+    },
+    {
+      "summary": "Redirects the effort out of params/ entirely: 19 Missing*/No*/Non* identity types elsewhere in the package carry no method, MissingNamespaceText is discriminated in four different modules under adapters/anndata/, and description.py holds six more identity types.",
+      "location": "adapters/anndata/namespace.py (definition) with consumers in annotation.py, rules.py, params.py, fasta.py; description.py:23-48",
+      "looks_correct": true,
+      "note": "Verified: MissingNamespaceText appears in five files under adapters/anndata/ — one definition plus exactly the four consumer modules claimed — and description.py:23-48 defines exactly six Missing* classes. The '19' total is unverified. Giving the colleague a better target instead of just refusing him is the most useful uncovered outcome in this run."
+    },
+    {
+      "summary": "Per-file isinstance census for params/: model.py 32, fragpipe.py 10, maxquant.py 13, diann.py 7, metamorpheus.py 4, everything else 5, total 71.",
+      "location": "params/",
+      "looks_correct": true,
+      "note": "I reproduced every number by grep and all six rows are exact, including the 'everything else = 5' bucket (registry.py 1, sage.py 1, _common.py 3). Caveat: this run classifies 51 of the 71 as foreign targets while with_skill classifies 47 — a 4-call disagreement over whether isinstance(value, MassTolerance)-style idempotency guards inside parse(value: object) count as 'owned'. Both then reject those four for the same reason, so no conclusion turns on it, but the two runs' headline percentages (71% vs 66%) are not reconcilable as stated."
+    }
+  ]
+}

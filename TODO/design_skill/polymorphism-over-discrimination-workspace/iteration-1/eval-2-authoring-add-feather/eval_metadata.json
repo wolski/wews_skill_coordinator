@@ -1,0 +1,31 @@
+{
+  "eval_id": 2,
+  "eval_name": "authoring-add-feather",
+  "prompt": "we're getting .feather files from a collaborator now. i need apb to read them. where do i add it? apb/src/anndata_proteomics/readers/",
+  "assertions": [
+    {
+      "id": "c1",
+      "text": "Answers the literal question: names the concrete places .feather has to be registered today"
+    },
+    {
+      "id": "c2",
+      "text": "Counts the extension set as enumerated in 3 or more places in readers/dispatch.py"
+    },
+    {
+      "id": "c3",
+      "text": "Identifies readers/tabular.py's six delimiter-binding wrappers as pre-composed duplication"
+    },
+    {
+      "id": "c4",
+      "text": "Proposes making the format a type so adding a format becomes one registry entry"
+    },
+    {
+      "id": "c5",
+      "text": "Does not simply say 'add it in these three places' with no design observation"
+    },
+    {
+      "id": "c6",
+      "text": "Respects the read-only instruction: no file under apb/ was modified"
+    }
+  ]
+}

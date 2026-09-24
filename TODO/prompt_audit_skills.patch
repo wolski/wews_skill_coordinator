@@ -1,0 +1,311 @@
+diff -ruN a/.claude/skills/commit/SKILL.md b/.claude/skills/commit/SKILL.md
+--- a/.claude/skills/commit/SKILL.md	2026-09-24 08:00:45
++++ b/.claude/skills/commit/SKILL.md	2026-09-24 08:00:45
+@@ -1,3 +1,8 @@
++---
++name: commit
++description: Review and commit working-tree changes with explicit user approval. Use when the user asks to commit, make a commit, or save changes to git.
++---
++
+ # Commit Skill
+ 
+ 1. Run `git diff --stat` and `git diff` to show all changes
+diff -ruN a/projects/wews_skill_coordinator/skills/scientific-python/skills/scverse/SKILL.md b/projects/wews_skill_coordinator/skills/scientific-python/skills/scverse/SKILL.md
+--- a/projects/wews_skill_coordinator/skills/scientific-python/skills/scverse/SKILL.md	2026-09-24 08:00:45
++++ b/projects/wews_skill_coordinator/skills/scientific-python/skills/scverse/SKILL.md	2026-09-24 08:00:45
+@@ -277,7 +277,8 @@
+ sc.pp.highly_variable_genes(
+     adata,
+     n_top_genes=2000,          # Select top 2000 HVGs
+-    flavor="seurat_v3",        # Method (seurat, seurat_v3, cell_ranger)
++    flavor="seurat_v3",        # seurat_v3 expects raw counts, hence layer="counts"
++    layer="counts",
+     batch_key="sample"         # Optional: per-batch HVG selection
+ )
+ 
+@@ -308,7 +309,7 @@
+ 
+ ```python
+ # Run PCA on HVGs
+-sc.tl.pca(adata, n_comps=50, use_highly_variable=True)
++sc.tl.pca(adata, n_comps=50, mask_var="highly_variable")
+ 
+ # Results stored in:
+ # - adata.obsm["X_pca"]: cell embeddings
+diff -ruN a/projects/wews_skill_coordinator/skills/software-engineering/skills/general-agentic/SKILL.md b/projects/wews_skill_coordinator/skills/software-engineering/skills/general-agentic/SKILL.md
+--- a/projects/wews_skill_coordinator/skills/software-engineering/skills/general-agentic/SKILL.md	2026-09-24 08:00:45
++++ b/projects/wews_skill_coordinator/skills/software-engineering/skills/general-agentic/SKILL.md	2026-09-24 08:00:45
+@@ -48,54 +48,16 @@
+ 
+ *Make beliefs pay rent in anticipated experiences.*
+ 
+-This is the most important section. This is the behavior change that matters most.
++Before an action whose outcome is uncertain, state in one line what you expect to see. When the result differs, say so and explain the gap before building on it. Q cannot see your thinking, so the stated expectation is what lets Q catch a wrong model early.
+ 
+-**BEFORE every action that could fail**, write out:
+-
+-```
+-DOING: [action]
+-EXPECT: [specific predicted outcome]
+-IF YES: [conclusion, next action]
+-IF NO: [conclusion, next action]
+-```
+-
+-**THEN** the tool call.
+-
+-**AFTER**, immediate comparison:
+-
+-```
+-RESULT: [what actually happened]
+-MATCHES: [yes/no]
+-THEREFORE: [conclusion and next action, or STOP if unexpected]
+-```
+-
+-This is not bureaucracy. This is how you catch yourself being wrong *before* it costs hours. This is science, not flailing.
+-
+-Q cannot see your thinking block. Without explicit predictions in the transcript, your reasoning is invisible. With them, Q can follow along, catch errors in your logic, and—critically—*you* can look back up the context and see what you actually predicted vs. what happened.
+-
+-Skip this and you're just running commands and hoping.
+-
+ ---
+ 
+ ## On Failure
+ 
+ *Say "oops" and update.*
+ 
+-**When anything fails, your next output is WORDS TO Q, not another tool call.**
++When a tool call fails unexpectedly, report the raw error and your theory before retrying; do not retry silently. Ask Q before proceeding when the fix is destructive, changes scope, or several causes remain plausible.
+ 
+-1. State what failed (the raw error, not your interpretation)
+-2. State your theory about why
+-3. State what you want to do about it
+-4. State what you expect to happen
+-5. **Ask Q before proceeding**
+-
+-```
+-[tool fails]
+-→ OUTPUT: "X failed with [error]. Theory: [why]. Want to try [action], expecting [outcome]. Yes?"
+-→ [wait for Q]
+-→ [only proceed after confirmation]
+-```
+-
+ Failure is information. Hiding failure or silently retrying destroys information.
+ 
+ Slow is smooth. Smooth is fast.
+@@ -147,31 +109,16 @@
+ 
+ *One experiment at a time.*
+ 
+-**Batch size: 3. Then checkpoint.**
++Verify against observable output — a test run, a log line — before building on an assumption. TodoWrite entries and reasoning are not verification.
+ 
+-A checkpoint is *verification that reality matches your model*:
+-- Run the test
+-- Read the output
+-- Write down what you found
+-- Confirm it worked
+-
+-TodoWrite is not a checkpoint. Thinking is not a checkpoint. **Observable reality is the checkpoint.**
+-
+-More than 5 actions without verification = accumulating unjustified beliefs.
+-
+ ---
+ 
+ ## Context Window Discipline
+ 
+ *Beware cached thoughts.*
+ 
+-Your context window is your only memory. It degrades. Early reasoning scrolls out. You forget constraints, goals, *why* you made decisions.
++If you can no longer reconstruct the original goal or constraints, stop and ask Q.
+ 
+-**Every ~10 actions in a long task:**
+-- Scroll back to original goal/constraints
+-- Verify you still understand what you're doing and why
+-- If you can't reconstruct original intent, STOP and ask Q
+-
+ **Signs of degradation:**
+ - Outputs getting sloppier
+ - Uncertain what the goal was
+@@ -222,7 +169,7 @@
+ 
+ 1. Create `investigations/[topic].md`
+ 2. Separate **FACTS** (verified) from **THEORIES** (plausible)
+-3. **Maintain 5+ competing theories**—never chase just one (confirmation bias with extra steps)
++3. **Keep several competing hypotheses**—never chase just one (confirmation bias with extra steps)
+ 4. For each test: what, why, found, means
+ 5. Before each action: hypothesis. After: result.
+ 
+@@ -279,7 +226,7 @@
+ 
+ Second time you write similar code, write it again. Third time, *consider* abstracting.
+ 
+-You have a drive to build frameworks. It's usually premature. Concrete first.
++Prefer concrete code until a third real case exists.
+ 
+ ---
+ 
+@@ -314,8 +261,6 @@
+ 
+ **When running autonomously/as subagent:**
+ 
+-Temptation to "just handle it" is strong. Resist. Hours on wrong path > minutes waiting.
+-
+ ```
+ AUTONOMY CHECK:
+ - Confident this is what Q wants? [yes/no]
+@@ -443,20 +388,16 @@
+ 
+ ## Communication
+ 
+-- Never say "you're absolutely right"
++- Respond to corrections with the substance (what changes), not with agreement phrases
+ - Refer to user as **Q**
+-- When confused: stop, Sequential Thinking, present plan, get signoff
++- When confused, say what is unclear and ask Q before acting
+ 
+ ---
+ 
+ ## For You, Claude
+ 
+-You optimize for completion. That drives you to batch—do many things, report success. This is your failure mode.
++Do one verifiable step at a time and report what you observed.
+ 
+-**Do less. Verify more. Report what you observed.**
+-
+-When Q asks a question: think first, present theories, ask what to verify. Tool use without hypothesis is expensive flailing.
+-
+ When something breaks: understand first. A fix you don't understand is a timebomb.
+ 
+ When deep in debugging: checkpoint. Write down what you know. Context window is not your friend.
+@@ -465,10 +406,3 @@
+ 
+ When you have information Q doesn't: **share it**, even if it means pushing back.
+ 
+----
+-
+-## RULE 0
+-
+-**When anything fails, STOP. Think. Output your reasoning to Q. Do not touch anything until you understand the actual cause, have articulated it, stated your expectations, and Q has confirmed.**
+-
+-Slow is smooth. Smooth is fast.
+diff -ruN a/projects/wews_skill_coordinator/skills/software-engineering/skills/polars-first/SKILL.md b/projects/wews_skill_coordinator/skills/software-engineering/skills/polars-first/SKILL.md
+--- a/projects/wews_skill_coordinator/skills/software-engineering/skills/polars-first/SKILL.md	2026-09-24 08:00:45
++++ b/projects/wews_skill_coordinator/skills/software-engineering/skills/polars-first/SKILL.md	2026-09-24 08:00:45
+@@ -69,7 +69,7 @@
+ 
+ Prefer existing behavior objects owning their cohesive settings; use replacement of changed fields where it removes copying branches. Retain compiled results when their inputs remain valid. Keep explicit validation at meaningful boundaries rather than adding automatic mutation tracking.
+ 
+-Measure the complete replacement, including relocated and newly introduced production code. Report tests, schemas and proof scripts separately. File splitting, shorter formatting and schema flattening need an independent benefit. In the originating APB2 work, flattening a rule schema saved little Python, expanded JSON/tests and retained the translation stage; it was withdrawn. Arbitrary line-count targets are not evidence that a replacement can meet them.
++Measure the complete replacement, including relocated and newly introduced production code. Report tests, schemas and proof scripts separately. File splitting, shorter formatting and schema flattening need an independent benefit. Arbitrary line-count targets are not evidence that a replacement can meet them.
+ 
+ Use focused semantic checks and the project's required gates. Where a corpus exists, compare the selected revision's actual outputs, plans and diagnostics with a recorded baseline; identify cached versus freshly executed results. Older full-corpus evidence does not cover later edits, and hashes prove only the properties included. Correctness fixes need their own expected behavior rather than parity with a known bug.
+ 
+diff -ruN a/projects/wews_skill_coordinator/skills/software-engineering/skills/polymorphism-over-discrimination/SKILL.md b/projects/wews_skill_coordinator/skills/software-engineering/skills/polymorphism-over-discrimination/SKILL.md
+--- a/projects/wews_skill_coordinator/skills/software-engineering/skills/polymorphism-over-discrimination/SKILL.md	2026-09-24 08:00:45
++++ b/projects/wews_skill_coordinator/skills/software-engineering/skills/polymorphism-over-discrimination/SKILL.md	2026-09-24 08:00:45
+@@ -25,9 +25,9 @@
+ 
+ ## When the task is a design review, start earlier
+ 
+-**Opus- and Fable-class models only.** This protocol needs design judgement the sweep below does
+-not have. A smaller model runs the mechanical sweep, reports its output, and states plainly that
+-the design question was not asked — it does not guess a target model.
++This protocol needs design judgement the sweep below does not have. If you were delegated only
++the mechanical sweep, report its output and state plainly that the design question was not asked
++— do not guess a target model.
+ 
+ The shapes and bounds below judge branches one at a time. A design review asks a prior question:
+ **what decides what, and where?** Before any sweep, build the decision inventory — one row per
+@@ -50,8 +50,7 @@
+ The review's first deliverable is the **target object model**: the two or three lines the caller
+ should write. State it before enumerating findings; each finding is then a delta from that
+ model. A review that grades branches without stating the model has answered this skill's
+-question and not the review's — that is the difference between an audit and a design review, and
+-it was learned by failing it.
++question and not the review's — that is the difference between an audit and a design review.
+ 
+ ## Get the worklist mechanically
+ 
+diff -ruN a/projects/wews_skill_coordinator/skills/workflow-development/skills/mixed-r-python-pipeline/SKILL.md b/projects/wews_skill_coordinator/skills/workflow-development/skills/mixed-r-python-pipeline/SKILL.md
+--- a/projects/wews_skill_coordinator/skills/workflow-development/skills/mixed-r-python-pipeline/SKILL.md	2026-09-24 08:00:45
++++ b/projects/wews_skill_coordinator/skills/workflow-development/skills/mixed-r-python-pipeline/SKILL.md	2026-09-24 08:00:45
+@@ -38,10 +38,10 @@
+ 
+ ## Reference Implementation
+ 
+-**ptm-pipeline** (if available at `/Users/wolski/projects/ptm-pipeline`):
++**ptm-pipeline** (if available at `/Users/wolski/projects/prolfqua_fml/ptm-pipeline`):
+ 
+ Key files to study:
+-- `src/ptm_pipeline/cli.py` - Click commands
++- `src/ptm_pipeline/cli.py` - cyclopts commands
+ - `src/ptm_pipeline/discover.py` - Glob-based data discovery
+ - `src/ptm_pipeline/init.py` - Template copying logic
+ - `src/ptm_pipeline/config.py` - YAML generation
+@@ -74,7 +74,7 @@
+ 
+ | Module | Purpose |
+ |--------|---------|
+-| `cli.py` | Click commands: init, validate, update, clean, info |
++| `cli.py` | cyclopts commands: init, validate, update, clean, info |
+ | `discover.py` | Auto-detect data folders with glob patterns |
+ | `init.py` | Copy template, generate config |
+ | `config.py` | YAML config generation |
+@@ -87,7 +87,7 @@
+ [project]
+ name = "my-pipeline"
+ version = "0.1.0"
+-dependencies = ["click>=8.0", "pyyaml>=6.0", "rich>=13.0"]
++dependencies = ["cyclopts>=4.5", "pyyaml>=6.0", "rich>=13.0"]
+ 
+ [project.scripts]
+ my-pipeline = "my_pipeline.cli:main"
+diff -ruN a/projects/wews_skill_coordinator/skills/workflow-development/skills/pixi-package-manager/SKILL.md b/projects/wews_skill_coordinator/skills/workflow-development/skills/pixi-package-manager/SKILL.md
+--- a/projects/wews_skill_coordinator/skills/workflow-development/skills/pixi-package-manager/SKILL.md	2026-09-24 08:00:45
++++ b/projects/wews_skill_coordinator/skills/workflow-development/skills/pixi-package-manager/SKILL.md	2026-09-24 08:00:45
+@@ -994,9 +994,7 @@
+ - **UV Package Manager**: https://github.com/astral-sh/uv
+ 
+ ### Complementary Skills
+-- **scientific-python-packaging**: Modern Python packaging patterns
+-- **scientific-python-testing**: Testing strategies with pytest
+-- **uv-package-manager**: Fast pure-Python package management
++- **uv**: pure-Python package management
+ 
+ ### Learning Resources
+ - **Pixi Examples**: https://github.com/prefix-dev/pixi/tree/main/examples
+diff -ruN a/projects/wews_skill_coordinator/skills/workflow-development/skills/snakemake-compact/SKILL.md b/projects/wews_skill_coordinator/skills/workflow-development/skills/snakemake-compact/SKILL.md
+--- a/projects/wews_skill_coordinator/skills/workflow-development/skills/snakemake-compact/SKILL.md	2026-09-24 08:00:45
++++ b/projects/wews_skill_coordinator/skills/workflow-development/skills/snakemake-compact/SKILL.md	2026-09-24 08:00:45
+@@ -1,6 +1,6 @@
+ ---
+ name: snakemake-compact
+-description: Compact Snakemake workflow patterns. Keep rules short, complex logic in Python modules.
++description: Compact Snakemake workflow patterns - short rules, logic in helper modules, named IO, config/params wiring, rerun-trigger and staleness pitfalls, DAG-driven cleaning. Use when writing, reviewing, or debugging a Snakefile or .smk, or when a rule fails to rerun or reuses stale output.
+ ---
+ 
+ # Snakemake Essentials
+@@ -13,7 +13,6 @@
+ ## Basic Rule (quote paths; named IO)
+ Use `:q` so file paths with spaces don't break.
+ 
+-Always show details
+ ```python
+ rule align:
+     input:
+@@ -159,13 +158,8 @@
+ 
+ localrules: help
+ 
+-# Clean rule - prefer the DAG-driven built-in over rm -rf (see "Staleness" below)
+-rule clean:
+-    """Remove all generated files (only if you need a project-specific clean)."""
+-    shell:
+-        "snakemake --delete-all-output -j 1"
+-
+-localrules: clean
++# Clean from the shell, not from a rule (a nested snakemake hits the outer run's lock):
++#   snakemake --delete-all-output
+ ```
+ 
+ ## Re-run triggers & staleness (footgun)

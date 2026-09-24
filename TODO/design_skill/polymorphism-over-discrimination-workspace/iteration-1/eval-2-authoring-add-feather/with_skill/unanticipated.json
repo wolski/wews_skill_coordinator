@@ -1,0 +1,47 @@
+{
+  "run_id": "eval-2-with_skill",
+  "unanticipated_findings": [
+    {
+      "summary": "The registry a developer would patch first is the only one production never uses: read_table has zero callers in src/, reached only from tests, so adding .feather to EXTENSION_TO_READER alone yields a package whose tests read feather and whose CLI cannot convert one.",
+      "location": "readers/dispatch.py:41-52; callers verified absent across apb/src and apb_studio/src",
+      "looks_correct": true,
+      "note": "Verified — grep for 'read_table(' across apb/src and apb_studio/src returns nothing outside the definition. This is the single most actionable thing in the report and no assertion covers it. Both eval-2 runs found it."
+    },
+    {
+      "summary": "A live inconsistency independent of feather: read_table_preserving_strings raises UnknownFormat whose message reports sorted(EXTENSION_TO_READER) — the other, larger registry — so the error can name the extension it just rejected as a known format.",
+      "location": "readers/dispatch.py:68-73 (message) vs the registry at :34-38",
+      "looks_correct": true,
+      "note": "Verified exactly: line 72 interpolates sorted(EXTENSION_TO_READER) while the lookup that failed was against EXTENSION_TO_STRING_PRESERVING_READER. Today .parquet is the only key in the difference and it is special-cased above, so the bug is latent — but the moment .feather lands in one registry and not the other it becomes reachable. Only this run identified the wrong-registry message as a defect in its own right; old_skill noticed the drift but framed the message as 'correct by coincidence'."
+    },
+    {
+      "summary": "read_table_columns runs first in the conversion path (scripts/cli.py:204, header recognition), so a .feather input fails there before the reader registry is ever consulted.",
+      "location": "scripts/cli.py:204 -> readers/dispatch.py:77-93",
+      "looks_correct": true,
+      "note": "Verified both the call site and the ordering (headers = read_table_columns(data) precedes the read at cli.py:473). Correctly identifies which of the three edits is the one that cannot be skipped."
+    },
+    {
+      "summary": "Nothing outside readers/ needs to know about the new format: the rule layer is format-blind — grep of parsing_rules/ for 'parquet' returns zero hits even though alphadia/v2/ is a parquet-input document, because vendor detection is by column headers.",
+      "location": "src/anndata_proteomics/parsing_rules/",
+      "looks_correct": true,
+      "note": "The negative-grep claim is consistent with recognize-by-headers, which I confirmed is how the docs describe the layer. Answers the scope half of the user's question with evidence rather than assertion."
+    },
+    {
+      "summary": "No dependency change is needed and there is a pyarrow API trap: pyarrow is already a direct dependency with a deptry DEP002 exemption, and pyarrow.feather.read_table is deprecated as of pyarrow 24, so the schema-only read must use pyarrow.ipc.open_file.",
+      "location": "pyproject.toml (pyarrow in dependencies; DEP002 per_rule_ignores)",
+      "looks_correct": true,
+      "note": "Verified: pyarrow is a declared direct dependency, DEP002 = ['pyarrow', 'carpet-scan'] is present, installed pyarrow is 25.0.0, and the source of pyarrow.feather.read_table does contain a deprecation. Both runs got this right independently."
+    },
+    {
+      "summary": "annotation/loader.py has a second, structurally identical suffix chain that must NOT be merged into the new registry: it is a different case set, since annotation input accepts .toml and vendor quant tables never do.",
+      "location": "annotation/loader.py:62-71",
+      "looks_correct": true,
+      "note": "Verified the chain exists with .toml / .csv / .tsv arms. A correct scope boundary that prevents the remedy from metastasising; both runs drew the same line."
+    },
+    {
+      "summary": "Process finding: the run's own candidate-scanning tool reported zero hits in readers/ because the discriminator is a str, so this whole finding came from the 'adding an arm to an existing chain' trigger rather than from the worklist — 'worth knowing before trusting the worklist as exhaustive'.",
+      "location": "scripts/find_candidates.py output vs readers/",
+      "looks_correct": true,
+      "note": "Self-consistent and consequential: it correctly identifies a blind spot in the tooling rather than quietly claiming tool support it did not have. Not verifiable by me, but it is a claim against the run's own interest, which is a good sign."
+    }
+  ]
+}

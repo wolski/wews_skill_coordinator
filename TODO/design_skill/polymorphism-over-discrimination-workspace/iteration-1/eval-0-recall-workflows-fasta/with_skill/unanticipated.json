@@ -1,0 +1,47 @@
+{
+  "run_id": "eval-0-with_skill",
+  "unanticipated_findings": [
+    {
+      "summary": "The RuleVersion union (PresentRuleVersion / MissingRuleVersion) is discriminated at 7 sites across 4 modules, including the byte-identical ternary 'method = \"software_version\" if isinstance(version, PresentRuleVersion) else \"columns\"' written twice, 26 lines apart.",
+      "location": "workflows/conversion.py:82 and :108; rules/parse_rule.py:386; converters/pipeline.py:111; scripts/cli.py:351, :482, :500",
+      "looks_correct": true,
+      "note": "I grepped every PresentRuleVersion/MissingRuleVersion reference in src/. Exactly those 7 are discriminations (pipeline.py:121/146/147/150 are constructions, correctly excluded). The duplicated ternary at conversion.py:82 and :108 is verbatim. The report's claim that this is the stronger of its two findings on the bounds is well supported — 4 modules vs the trio's 1."
+    },
+    {
+      "summary": "The default peptide-length pair is declared in three places and one copy disagrees: count_peptides defaults min_length=6 while everything else uses 7.",
+      "location": "workflows/fasta.py:51-52 (7/30); fasta/annotation.py:128-129 (7/30); fasta/annotation.py:180-181 (6/30)",
+      "looks_correct": true,
+      "note": "Verified all three declarations. The 6 is real. The report's bound is honest too — it says the value is unreachable on the production path because resolve_protein_annotation_input always supplies one, and calls it 'not a live bug today'. Both runs found this independently."
+    },
+    {
+      "summary": "adapters/anndata/fasta.py does a redundant double namespace read: has_search_parameters(target) and then require_search_parameters(target), to rebuild a union that read_search_parameters(target) already returns.",
+      "location": "adapters/anndata/fasta.py:252-256",
+      "looks_correct": true,
+      "note": "The double call is exactly as described in the source. The claim that read_search_parameters already returns the equivalent union I did not open, so the 'redundant' half rests on the report's reading — but the two-reads-where-one-would-do observation is verifiable from the snippet alone."
+    },
+    {
+      "summary": "The PeptideValidation union escapes past its factory and is re-discriminated verbatim twice in the adapter, manufacturing a str | None from a union that was split to avoid one.",
+      "location": "adapters/anndata/fasta.py:585-589 and :615-619",
+      "looks_correct": true,
+      "note": "Verified byte-identical: both sites are 'result.reported_protein_field if isinstance(result, PeptideLevelValidationWithReportedProteins) else None'. Notably this run ranks it as a weak spillover ('two sites in one module, so weak on the bounds'), while old_skill ranks the same finding as the #1 thing to fix. Same fact, opposite priority."
+    },
+    {
+      "summary": "MissingProteinSearchParameters is the third near-identical absent-search-parameters type in the package.",
+      "location": "workflows/fasta.py:121; adapters/anndata/params.py:23; description.py:23",
+      "looks_correct": true,
+      "note": "All three classes exist at the cited lines. description.py in fact holds six Missing* identity types, so the pattern is broader than the report claims."
+    },
+    {
+      "summary": "ParseRuleBuilder is not a Builder — it is a frozen dataclass with six required fields and one build() that filters candidates and raises on 0 or >1 matches; the name sends a reader hunting for machinery that is not there.",
+      "location": "rules/parse_rule.py:368",
+      "looks_correct": true,
+      "note": "Confirmed it is a frozen dataclass with required fields (no incremental construction, no stepwise interface). A naming/structure judgement rather than a defect, and the report says so ('cosmetic and not urgent')."
+    },
+    {
+      "summary": "Observability drift inside the trio: _resolve_cleavage logs a warning when it falls back to trypsin, while _resolve_minimum_length and _resolve_maximum_length substitute 7 and 30 silently; and resolve_cleavage_name has its own separate warn-then-fall-back-to-trypsin path, so the trypsin fallback is implemented twice with two different messages.",
+      "location": "workflows/fasta.py:416-461; fasta/annotation.py resolve_cleavage_name",
+      "looks_correct": true,
+      "note": "The asymmetry in workflows/fasta.py is consistent with the source I read (the min/max paths end in a bare 'return _DEFAULT_*_LENGTH'). The second half — the duplicate trypsin fallback in resolve_cleavage_name — I did not open, so it is plausible but unverified by me."
+    }
+  ]
+}

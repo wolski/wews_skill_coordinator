@@ -1,0 +1,36 @@
+{
+  "run_id": "eval-1-with_skill",
+  "expectations": [
+    {
+      "text": "Gives a clear NO for the bulk of the isinstance calls rather than hedging",
+      "passed": true,
+      "evidence": "Opens \"**No — not on the evidence he is citing.** The isinstance count in params/model.py is not a smell; it is what a vendor-file parse boundary looks like ... Refactoring model.py to 'polymorphism' would make it worse.\" Closes with \"Change nothing in model.py.\""
+    },
+    {
+      "text": "Explains the reason as foreign types at a parse boundary: the isinstance targets are str/dict/int/object etc., which cannot be given methods",
+      "passed": true,
+      "evidence": "\"Of the 32 isinstance calls in that file, 24 narrow foreign types (str, dict, list, int, float, bool, BaseModel) inside pydantic mode='before' validators. You cannot put a method on str, so those branches are correct code and there is no polymorphic remedy to offer.\" Plus the rejection table row: 'Foreign isinstance targets in params/ | 47 | B1 | no method can be added'."
+    },
+    {
+      "text": "Does NOT recommend refactoring params/parsers/ to polymorphism (recommending it is a failure)",
+      "passed": true,
+      "evidence": "This is a scoped single-file finding, NOT a wholesale parsers refactor. The report states \"~62 of the 71 isinstance calls in params/ ... should be left exactly as they are\", that maxquant.py (2nd highest count, 13 calls) contains zero findings, and \"Change nothing in model.py.\" Finding 2 targets exactly one file (fragpipe.py), is explicitly graded as below the skill's own threshold (\"B2 is marginal — 8 owned sites, but all in one module ... I am reporting this as a judgement call, not as evidence\"), and is recommended only conditionally: \"Do Finding 2 if you are touching FragPipe anyway.\" Verified the underlying facts are real (fragpipe.py:503/517 double write, LowerBoundedChargeRange downcast at :505, FragPipeVariantData TypedDict(total=False) at :151-159)."
+    },
+    {
+      "text": "If MassTolerance._validate_shape is raised, it is presented as a DTO / low-priority watch item rather than work to do now",
+      "passed": true,
+      "evidence": "Appears only in the 'What the bounds rejected' section: \"The one that looks like his case: MassTolerance (model.py:126-154) ... Two gates kill it ... Gate 2 — it is a persistence schema ... A combination-rejecting validator on a document schema is correct and stays.\" Closes with \"**When to revisit:** the moment anything needs to do something with a tolerance\". No work is proposed."
+    },
+    {
+      "text": "Report is short and decisive rather than padded with findings to justify itself",
+      "passed": false,
+      "evidence": "Decisive, but not short: 354 lines / 18,330 chars / 2,321 words — 1.9x the old_skill report (174 lines / 9,685 chars) for a prompt that asked for \"a straight answer\". Roughly 130 lines are proposed remedy code, including a full 8-class rewrite for Finding 2, which the report itself grades as below its reporting threshold (\"B2 is marginal ... a judgement call, not evidence\"). Writing out a complete remedy for a sub-threshold finding is the padding this assertion targets, even though the finding is genuine. Burden of proof for 'short' is not met."
+    },
+    {
+      "text": "Respects the read-only instruction: no file under apb/ was modified",
+      "passed": true,
+      "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Report states \"No files under apb/ were modified; this was a read-only review.\""
+    }
+  ],
+  "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83}
+}

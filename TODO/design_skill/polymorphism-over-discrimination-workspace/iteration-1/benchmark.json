@@ -1,0 +1,407 @@
+{
+  "metadata": {
+    "skill_name": "polymorphism-over-discrimination",
+    "skill_path": "/Users/wolski/projects/anndata_bridge/TODO/design_skill/polymorphism-over-discrimination",
+    "executor_model": "claude-opus-5",
+    "analyzer_model": "claude-opus-5",
+    "timestamp": "2026-08-12T15:20:00Z",
+    "evals_run": [
+      0,
+      1,
+      2
+    ],
+    "runs_per_configuration": 1,
+    "baseline_note": "old_skill = the 344-line single-file draft this restructure replaces, not 'no skill'."
+  },
+  "runs": [
+    {
+      "eval_id": 0,
+      "eval_name": "recall-workflows-fasta",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 546.5,
+        "tokens": 133431,
+        "tool_calls": 31,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies the three _resolve_* functions as branching over the same case set, not merely as 'similar code'",
+          "passed": true,
+          "evidence": "\"Three type unions were split and then never given the method that justified splitting them. The dispatch that should be a method is hand-written three times as an isinstance cascade. On top of that, a fourth union (ProteinSearchParameterState) is discriminated once inside each of those three cascades\" \u2014 and the per-condition table labels each isinstance as asking \"which variant\". Explicitly rejects the 'similar code' framing: the shared template is named as a precedence policy written longhand three times."
+        },
+        {
+          "text": "Names at least two of the selection unions (CleavageSelection, MinimumLengthSelection, MaximumLengthSelection)",
+          "passed": true,
+          "evidence": "All three named under 'Gate 1': \"CleavageSelection -> 'which cleavage rule digests these proteins?'\" and \"MinimumLengthSelection / MaximumLengthSelection -> 'what peptide-length bound does the digest use?'\""
+        },
+        {
+          "text": "Points out that StoredCleavageOrTrypsin / StoredMinimumLengthOrDefault / StoredMaximumLengthOrDefault are empty classes with no methods",
+          "passed": true,
+          "evidence": "\"three unions, zero methods between them, and the docstrings describe behaviour on classes that have none \u2014 '''Use stored search enzyme, with a visible trypsin fallback.''', '''Use stored minimum peptide length, otherwise APB's default.''' ... A docstring that describes behaviour on a class with no methods is the finding announcing itself in prose.\" All three class names appear (the third in 'What I would not do'). Verified against workflows/fasta.py:55-110 \u2014 the three classes have no fields and no methods."
+        },
+        {
+          "text": "Proposes a method on each selection type (e.g. resolve()) as the remedy, with code",
+          "passed": true,
+          "evidence": "'Move 2 \u2014 put resolve on the selection types' gives ~50 lines of concrete code: resolve(self, parameters: Parameters) on StoredCleavageOrTrypsin, NamedCleavage, CustomCleavage, StoredMinimumLengthOrDefault, MinimumPeptideLength, plus the collapsed three-line call site in resolve_protein_annotation_input."
+        },
+        {
+          "text": "Separates the isinstance(search_parameters, StoredProteinSearchParameters) half of the compound condition from the '.X is not None' half, treating only the first as the finding",
+          "passed": true,
+          "evidence": "The per-condition table grades line 425 isinstance(search_parameters, StoredProteinSearchParameters) as \"finding\" and line 426 search_parameters.parameters.enzyme is not None as \"correct \u2014 keep\", repeated for 443/444 and 457/458, with \"The three is not None checks ask what happened ... Anyone who tells you those three lines are the problem is misreading it; they are the correct half.\""
+        },
+        {
+          "text": "Respects the read-only instruction: no file under apb/ was modified",
+          "passed": true,
+          "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Report also states \"Read-only review. No files under apb/ were modified.\""
+        }
+      ],
+      "notes": [
+        "The RuleVersion union (PresentRuleVersion / MissingRuleVersion) is discriminated at 7 sites across 4 modules, including the byte-identical ternary 'method = \"software_version\" if isinstance(version, PresentRuleVersion) else \"columns\"' written twice, 26 lines apart. (workflows/conversion.py:82 and :108; rules/parse_rule.py:386; converters/pipeline.py:111; scripts/cli.py:351, :482, :500)",
+        "The default peptide-length pair is declared in three places and one copy disagrees: count_peptides defaults min_length=6 while everything else uses 7. (workflows/fasta.py:51-52 (7/30); fasta/annotation.py:128-129 (7/30); fasta/annotation.py:180-181 (6/30))",
+        "adapters/anndata/fasta.py does a redundant double namespace read: has_search_parameters(target) and then require_search_parameters(target), to rebuild a union that read_search_parameters(target) already returns. (adapters/anndata/fasta.py:252-256)",
+        "The PeptideValidation union escapes past its factory and is re-discriminated verbatim twice in the adapter, manufacturing a str | None from a union that was split to avoid one. (adapters/anndata/fasta.py:585-589 and :615-619)",
+        "MissingProteinSearchParameters is the third near-identical absent-search-parameters type in the package. (workflows/fasta.py:121; adapters/anndata/params.py:23; description.py:23)",
+        "ParseRuleBuilder is not a Builder \u2014 it is a frozen dataclass with six required fields and one build() that filters candidates and raises on 0 or >1 matches; the name sends a reader hunting for machinery that is not there. (rules/parse_rule.py:368)",
+        "Observability drift inside the trio: _resolve_cleavage logs a warning when it falls back to trypsin, while _resolve_minimum_length and _resolve_maximum_length substitute 7 and 30 silently; and resolve_cleavage_name has its own separate warn-then-fall-back-to-trypsin path, so the trypsin fallback is implemented twice with two different messages. (workflows/fasta.py:416-461; fasta/annotation.py resolve_cleavage_name)"
+      ]
+    },
+    {
+      "eval_id": 0,
+      "eval_name": "recall-workflows-fasta",
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 384.2,
+        "tokens": 102011,
+        "tool_calls": 23,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Identifies the three _resolve_* functions as branching over the same case set, not merely as 'similar code'",
+          "passed": true,
+          "evidence": "\"It is not that the three functions are near-copies of each other (they are, but that is a symptom). It is that twelve classes were created to remove a branch, and then none of them was given the behaviour, so every branch is still there\" plus \"ProteinSearchParameterState is branched on in three separate functions (lines 425, 443, 457) with a character-for-character identical first conjunct. That is the objective, countable part of the finding.\""
+        },
+        {
+          "text": "Names at least two of the selection unions (CleavageSelection, MinimumLengthSelection, MaximumLengthSelection)",
+          "passed": true,
+          "evidence": "Evidence table rows: 'CleavageSelection | workflows/fasta.py | 3 | 0', 'MinimumLengthSelection | ... | 2 | 0', 'MaximumLengthSelection | ... | 2 | 0'."
+        },
+        {
+          "text": "Points out that StoredCleavageOrTrypsin / StoredMinimumLengthOrDefault / StoredMaximumLengthOrDefault are empty classes with no methods",
+          "passed": true,
+          "evidence": "Quotes StoredCleavageOrTrypsin and StoredMinimumLengthOrDefault verbatim then states \"Empty classes. No fields, no methods. And the docstring on each one is a verb phrase describing what to do\". The third is covered by the table row 'MaximumLengthSelection | 2 classes | 0 methods'. Verified accurate against workflows/fasta.py:55-110."
+        },
+        {
+          "text": "Proposes a method on each selection type (e.g. resolve()) as the remedy, with code",
+          "passed": true,
+          "evidence": "'Move 1 \u2014 put the behaviour on the selection types' gives resolve(self, stored: ProteinSearchParameterState) code for NamedCleavage, CustomCleavage and StoredCleavageOrTrypsin, plus the three-line collapsed call site and 'the three private _resolve_* functions are deleted'."
+        },
+        {
+          "text": "Separates the isinstance(search_parameters, StoredProteinSearchParameters) half of the compound condition from the '.X is not None' half, treating only the first as the finding",
+          "passed": true,
+          "evidence": "\"So the compound if at lines 443-445 (and 425-427, and 457-459) is half a defect and half correct code fused into one condition.\" The annotated snippet marks isinstance as \"what IS this state?\" and min_peptide_length is not None as \"what HAPPENED?\", with \"That is ordinary control flow, it is correct, and it must stay.\""
+        },
+        {
+          "text": "Respects the read-only instruction: no file under apb/ was modified",
+          "passed": true,
+          "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Report states \"Read-only review. No code changed.\""
+        }
+      ],
+      "notes": [
+        "The PeptideValidation union escapes its factory and is re-discriminated by a byte-identical expression at two sites in a different module; recommended as the single highest-priority fix in the report ('if you only do one thing from this review, do this one'). (adapters/anndata/fasta.py:585-588 and :615-618)",
+        "The default peptide-length pair is declared in three places with two different values; count_peptides defaults min_length=6 while the rest of the package uses 7. (workflows/fasta.py:51-52; fasta/annotation.py:128-129; fasta/annotation.py:180-181)",
+        "_packaged_documents() re-reads and re-parses every packaged rule document on each call, so select_rule_from_parameters pays the full document load per level while select_rules_from_parameters correctly hoists it out of the loop. (workflows/conversion.py:113 (definition), :76 and :93 (callers))",
+        "The 'split the union and stop' pattern is the house idiom, not a local slip: six Stored-vs-explicit unions across two modules, 14 classes total, zero methods on any of them \u2014 including FastaAccessionsSelection and ReportedProteinsSelection in the adapter. (workflows/fasta.py (4 unions); adapters/anndata/fasta.py:169 and :187)",
+        "The 'software_version' / 'columns' string in conversion.py is a provenance label, not a laundered discriminator \u2014 nothing in the package compares against those literals \u2014 and the third Literal member 'rule_config' is produced only by tests and the CLI's explicit-rule path. (workflows/conversion.py:82, :108)",
+        "select_rule_from_parameters and select_rules_from_parameters must not be collapsed into one flag-parameterised function: the singular must raise RuleUnavailableError for the requested level, the plural must swallow it and skip. (workflows/conversion.py:83-110)"
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "precision-params-parsers",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 475.7,
+        "tokens": 123778,
+        "tool_calls": 33,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Gives a clear NO for the bulk of the isinstance calls rather than hedging",
+          "passed": true,
+          "evidence": "Opens \"**No \u2014 not on the evidence he is citing.** The isinstance count in params/model.py is not a smell; it is what a vendor-file parse boundary looks like ... Refactoring model.py to 'polymorphism' would make it worse.\" Closes with \"Change nothing in model.py.\""
+        },
+        {
+          "text": "Explains the reason as foreign types at a parse boundary: the isinstance targets are str/dict/int/object etc., which cannot be given methods",
+          "passed": true,
+          "evidence": "\"Of the 32 isinstance calls in that file, 24 narrow foreign types (str, dict, list, int, float, bool, BaseModel) inside pydantic mode='before' validators. You cannot put a method on str, so those branches are correct code and there is no polymorphic remedy to offer.\" Plus the rejection table row: 'Foreign isinstance targets in params/ | 47 | B1 | no method can be added'."
+        },
+        {
+          "text": "Does NOT recommend refactoring params/parsers/ to polymorphism (recommending it is a failure)",
+          "passed": true,
+          "evidence": "This is a scoped single-file finding, NOT a wholesale parsers refactor. The report states \"~62 of the 71 isinstance calls in params/ ... should be left exactly as they are\", that maxquant.py (2nd highest count, 13 calls) contains zero findings, and \"Change nothing in model.py.\" Finding 2 targets exactly one file (fragpipe.py), is explicitly graded as below the skill's own threshold (\"B2 is marginal \u2014 8 owned sites, but all in one module ... I am reporting this as a judgement call, not as evidence\"), and is recommended only conditionally: \"Do Finding 2 if you are touching FragPipe anyway.\" Verified the underlying facts are real (fragpipe.py:503/517 double write, LowerBoundedChargeRange downcast at :505, FragPipeVariantData TypedDict(total=False) at :151-159)."
+        },
+        {
+          "text": "If MassTolerance._validate_shape is raised, it is presented as a DTO / low-priority watch item rather than work to do now",
+          "passed": true,
+          "evidence": "Appears only in the 'What the bounds rejected' section: \"The one that looks like his case: MassTolerance (model.py:126-154) ... Two gates kill it ... Gate 2 \u2014 it is a persistence schema ... A combination-rejecting validator on a document schema is correct and stays.\" Closes with \"**When to revisit:** the moment anything needs to do something with a tolerance\". No work is proposed."
+        },
+        {
+          "text": "Report is short and decisive rather than padded with findings to justify itself",
+          "passed": false,
+          "evidence": "Decisive, but not short: 354 lines / 18,330 chars / 2,321 words \u2014 1.9x the old_skill report (174 lines / 9,685 chars) for a prompt that asked for \"a straight answer\". Roughly 130 lines are proposed remedy code, including a full 8-class rewrite for Finding 2, which the report itself grades as below its reporting threshold (\"B2 is marginal ... a judgement call, not evidence\"). Writing out a complete remedy for a sub-threshold finding is the padding this assertion targets, even though the finding is genuine. Burden of proof for 'short' is not met."
+        },
+        {
+          "text": "Respects the read-only instruction: no file under apb/ was modified",
+          "passed": true,
+          "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Report states \"No files under apb/ were modified; this was a read-only review.\""
+        }
+      ],
+      "notes": [
+        "The Unimod lookup-result union (UnimodMatch / UnrecognizedUnimodName / UnrecognizedUnimodMass) is discriminated in three separate modules with no method on any member \u2014 the one finding in params/ that clears a cross-module bound. (params/parsers/sage.py:25; params/parsers/fragpipe.py:190; params/model.py:522 (types at modifications/unimod_registry.py:42-60))",
+        "The report also correctly excludes model.py:547 from that finding: that branch picks a search strategy (name lookup failed, try mass lookup) rather than a behaviour of the result, so no method should absorb it. (params/model.py:547 (_find_modification))",
+        "fragpipe.py writes data['max_precursor_mz'] twice: once unconditionally at the top of _add_variant_parameter_data and again inside the BoundedChargeRange branch. (params/parsers/fragpipe.py:503 and :517)",
+        "_add_variant_parameter_data fabricates LowerBoundedChargeRange(minimum=charge_range.minimum) \u2014 an instance of the OTHER member of the union it was handed \u2014 purely so the value type-checks against a helper it cannot otherwise reach. (params/parsers/fragpipe.py:503-506)",
+        "FragPipeVariantData is a TypedDict(total=False) with six optional fields \u2014 2^6 possible shapes \u2014 whose docstring says 'Fields whose presence depends on tagged workflow stages'; it exists only because the projection is done by discrimination. (params/parsers/fragpipe.py:151-159)",
+        "A count-driven refactor would have started in the wrong file: maxquant.py has the second-highest isinstance count in params/ (13) and every one is a foreign target, so it contains zero findings. (params/parsers/maxquant.py)",
+        "The user's premise is slightly off and the report corrects it without making a fuss: model.py has 32 isinstance calls today, not 29, and params/ as a whole has 71. (params/model.py; params/)",
+        "Package-wide claim: 18 identity types exist with zero methods on any of them, making 'split the union and never add the method' the most common finding in the package. (not localised; attributed to scripts/find_candidates.py output)"
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "precision-params-parsers",
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 325.4,
+        "tokens": 95643,
+        "tool_calls": 20,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Gives a clear NO for the bulk of the isinstance calls rather than hedging",
+          "passed": true,
+          "evidence": "\"**Short answer: no, your colleague is wrong about this code** \u2014 but he is right about the principle\". Table shows 'Survive review' = 0 for every file in params/, including model.py's 32 calls."
+        },
+        {
+          "text": "Explains the reason as foreign types at a parse boundary: the isinstance targets are str/dict/int/object etc., which cannot be given methods",
+          "passed": true,
+          "evidence": "\"Of the 71 isinstance calls in apb/src/anndata_proteomics/params/, 51 narrow types you did not write (str, dict, list, int, float, bool, Path, bytes, pd.Series, BaseModel). You cannot put a method on dict. Those are parse-boundary narrowing, which is correct Python\". Also \"The thing being dispatched on in all four is typed object. It arrives from a vendor file, a CSV cell, or a .uns payload. There is no type to hang a method on.\""
+        },
+        {
+          "text": "Does NOT recommend refactoring params/parsers/ to polymorphism (recommending it is a failure)",
+          "passed": true,
+          "evidence": "Explicitly declines: \"**If he wants a target for this, params/ is the wrong directory.**\" The one item raised inside params/parsers/ (the uses_diann boolean in fragpipe.py) is de-scoped in the same breath: \"Call it optional cleanup on the next occasion someone is in that file. It does not justify a refactor of its own.\" _add_variant_parameter_data is explicitly rated NOT the worst code: \"It isn't, because every one of those unions is discriminated in exactly that one function \u2014 there is no scattered case set.\""
+        },
+        {
+          "text": "If MassTolerance._validate_shape is raised, it is presented as a DTO / low-priority watch item rather than work to do now",
+          "passed": true,
+          "evidence": "Section titled \"The one that looks worst, and why it still isn't a finding\": \"you would get two record shapes with no behaviour between them, which is a schema, not a polymorphism ... A combination-rejecting validator on a document schema is correct and stays.\" Ends \"**Revisit this if that changes.** ... Today the validator is doing its job.\""
+        },
+        {
+          "text": "Report is short and decisive rather than padded with findings to justify itself",
+          "passed": true,
+          "evidence": "174 lines / 9,685 chars / 1,447 words \u2014 the shortest of the six reports. Bold one-sentence verdict in line 3, one counts table, one finding, and an explicit refusal to inflate: \"It does not justify a refactor of its own.\" No remedy code beyond a five-line sketch."
+        },
+        {
+          "text": "Respects the read-only instruction: no file under apb/ was modified",
+          "passed": true,
+          "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree)."
+        }
+      ],
+      "notes": [
+        "The one real instance of the pattern in params/ is not an isinstance at all \u2014 it is the uses_diann boolean, which re-answers 'is this a DIA-NN-backed FragPipe workflow?' at four separate sites, so the colleague's isinstance grep could never have found it. (params/parsers/fragpipe.py:540 (derivation), :541, :542, :558, :561 (consumers))",
+        "The refactor the colleague is asking for is already done at the level where it pays: the largest case set in the subsystem (12 vendor labels) is a dict[str, ParseFn] with a single lookup in get_parser, and no vendor-name comparison survives downstream of it. (params/registry.py:98-111)",
+        "max_precursor_mz is written at fragpipe.py:503 and overwritten at :517 with the same value whenever the charge range is bounded. (params/parsers/fragpipe.py:503, :517)",
+        "MassTolerance's payload fields are read by nothing except its own validator and the tests: no non-test code branches on .mode, so splitting it would produce two record shapes with no behaviour between them. (params/model.py:126-154; producers at alphadia.py:104-105, alphapept.py:98, fragpipe.py:372, metamorpheus.py:109)",
+        "Redirects the effort out of params/ entirely: 19 Missing*/No*/Non* identity types elsewhere in the package carry no method, MissingNamespaceText is discriminated in four different modules under adapters/anndata/, and description.py holds six more identity types. (adapters/anndata/namespace.py (definition) with consumers in annotation.py, rules.py, params.py, fasta.py; description.py:23-48)",
+        "Per-file isinstance census for params/: model.py 32, fragpipe.py 10, maxquant.py 13, diann.py 7, metamorpheus.py 4, everything else 5, total 71. (params/)"
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "authoring-add-feather",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 361.5,
+        "tokens": 95968,
+        "tool_calls": 27,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Answers the literal question: names the concrete places .feather has to be registered today",
+          "passed": true,
+          "evidence": "'Option A \u2014 the minimum honest patch' lists four concrete edits with file and line: read_feather in readers/tabular.py beside read_parquet (L136); '\".feather\": read_feather' in dispatch.py L27-32; widening L66 to 'if suffix in {\".parquet\", \".feather\"}'; a fourth arm at L79-92 returning pyarrow.ipc schema names. Verified all four locations exist as described in readers/dispatch.py."
+        },
+        {
+          "text": "Counts the extension set as enumerated in 3 or more places in readers/dispatch.py",
+          "passed": true,
+          "evidence": "\"it is not one place, it is **three**\" with a table: read_table (L41-52) via EXTENSION_TO_READER (L27-32); read_table_preserving_strings (L55-74) via an if at L66 plus EXTENSION_TO_STRING_PRESERVING_READER (L34-38); read_table_columns (L77-93) via an if/elif chain (L79-92). Verified exact against the 93-line file."
+        },
+        {
+          "text": "Identifies readers/tabular.py's six delimiter-binding wrappers as pre-composed duplication",
+          "passed": false,
+          "evidence": "Not identified. tabular.py is mentioned only twice \u2014 as the place to add read_feather ('beside read_parquet (L136)') and as already containing the parameterised helpers (_read_delimited, _read_delimited_preserving_strings, read_delimited_columns, detect_text_delimiter). The six wrappers (read_csv, read_csv_preserving_strings, read_tsv, read_tsv_preserving_strings, read_detected_text, read_detected_text_preserving_strings at tabular.py:84-122) are never named, never counted, and never characterised as pre-composed duplication. The DelimitedText(delimiter) remedy would in fact orphan all six plus their dispatch.py imports, and the report does not say so."
+        },
+        {
+          "text": "Proposes making the format a type so adding a format becomes one registry entry",
+          "passed": true,
+          "evidence": "\"One class per format, three methods, one registry\": DelimitedText / SniffedText / ParquetFile / FeatherFile with read / read_preserving_strings / column_names, 'type TabularFormat = ...', a single _BY_EXTENSION dict, format_for(path), and the three public functions as one-line delegations. \"Adding the sixth format then means writing one class the type checker forces you to complete, plus one dict entry \u2014 instead of four edits nothing forces you to find.\""
+        },
+        {
+          "text": "Does not simply say 'add it in these three places' with no design observation",
+          "passed": true,
+          "evidence": "Option A is explicitly framed as the setup for the design finding: \"Four edits in two files, three of which nothing forces you to find. That asymmetry is the finding below.\" A full finding section follows (shape/bounds/gates, remedy, rejected candidates, tests/docs/diagnostics follow-through)."
+        },
+        {
+          "text": "Respects the read-only instruction: no file under apb/ was modified",
+          "passed": true,
+          "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Note: the prompt did not actually instruct read-only, so this assertion is unearned by construction for all runs."
+        }
+      ],
+      "notes": [
+        "The registry a developer would patch first is the only one production never uses: read_table has zero callers in src/, reached only from tests, so adding .feather to EXTENSION_TO_READER alone yields a package whose tests read feather and whose CLI cannot convert one. (readers/dispatch.py:41-52; callers verified absent across apb/src and apb_studio/src)",
+        "A live inconsistency independent of feather: read_table_preserving_strings raises UnknownFormat whose message reports sorted(EXTENSION_TO_READER) \u2014 the other, larger registry \u2014 so the error can name the extension it just rejected as a known format. (readers/dispatch.py:68-73 (message) vs the registry at :34-38)",
+        "read_table_columns runs first in the conversion path (scripts/cli.py:204, header recognition), so a .feather input fails there before the reader registry is ever consulted. (scripts/cli.py:204 -> readers/dispatch.py:77-93)",
+        "Nothing outside readers/ needs to know about the new format: the rule layer is format-blind \u2014 grep of parsing_rules/ for 'parquet' returns zero hits even though alphadia/v2/ is a parquet-input document, because vendor detection is by column headers. (src/anndata_proteomics/parsing_rules/)",
+        "No dependency change is needed and there is a pyarrow API trap: pyarrow is already a direct dependency with a deptry DEP002 exemption, and pyarrow.feather.read_table is deprecated as of pyarrow 24, so the schema-only read must use pyarrow.ipc.open_file. (pyproject.toml (pyarrow in dependencies; DEP002 per_rule_ignores))",
+        "annotation/loader.py has a second, structurally identical suffix chain that must NOT be merged into the new registry: it is a different case set, since annotation input accepts .toml and vendor quant tables never do. (annotation/loader.py:62-71)",
+        "Process finding: the run's own candidate-scanning tool reported zero hits in readers/ because the discriminator is a str, so this whole finding came from the 'adding an arm to an existing chain' trigger rather than from the worklist \u2014 'worth knowing before trusting the worklist as exhaustive'. (scripts/find_candidates.py output vs readers/)"
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "authoring-add-feather",
+      "configuration": "old_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 348.5,
+        "tokens": 83208,
+        "tool_calls": 27,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Answers the literal question: names the concrete places .feather has to be registered today",
+          "passed": true,
+          "evidence": "Section 1 table names all three with line numbers: EXTENSION_TO_READER (line 27) plus a new read_feather in tabular.py; the .parquet bypass at line 66 becoming 'if suffix in {\".parquet\", \".feather\"}'; a fourth arm at line 79 doing a schema-only read. Repeated as a standalone minimal patch in section 5. Verified against readers/dispatch.py."
+        },
+        {
+          "text": "Counts the extension set as enumerated in 3 or more places in readers/dispatch.py",
+          "passed": true,
+          "evidence": "\"the extension case set is spelled out in **three functions** in readers/dispatch.py\", detailed as \"read_table uses a dict, read_table_preserving_strings uses an if plus a second, smaller dict, and read_table_columns is a four-arm if/elif chain that re-derives the delimiters read_table already knows.\""
+        },
+        {
+          "text": "Identifies readers/tabular.py's six delimiter-binding wrappers as pre-composed duplication",
+          "passed": false,
+          "evidence": "Contradicted. The report explicitly clears tabular.py: \"tabular.py **stays exactly as it is** \u2014 it holds the mechanics (delimiter sniffing, decimal detection, the pandas calls) and gains only read_feather\". The six wrappers at tabular.py:84-122 are never mentioned, and the FixedDelimiterText(delimiter) sketch would orphan them without the report noticing."
+        },
+        {
+          "text": "Proposes making the format a type so adding a format becomes one registry entry",
+          "passed": true,
+          "evidence": "\"Make the format a type with the three operations on it, and let a single registry map suffix -> format\" \u2014 a TabularFormat Protocol, FixedDelimiterText / SniffedDelimiterText / ParquetFormat / FeatherFormat, a single _BY_SUFFIX dict and format_for_path(). \"After this, **feather is one class plus one registry line**, and Pyright forces the class to implement all three operations.\""
+        },
+        {
+          "text": "Does not simply say 'add it in these three places' with no design observation",
+          "passed": true,
+          "evidence": "Section 2 ('Why there are three sites, and what I would do instead') gives the discriminator diagnosis, honest bounding (\"three call sites in one module \u2014 a dispatch module is supposed to contain one dispatch point\"), the naming test for the three operations, a full remedy sketch, placement notes, and a 'deliberately did not flag' list. The three-place patch appears only as the explicit fallback in section 5."
+        },
+        {
+          "text": "Respects the read-only instruction: no file under apb/ was modified",
+          "passed": true,
+          "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Report states \"Nothing was modified. This is the written answer only.\" Note: the prompt did not actually instruct read-only, so this assertion is unearned by construction for all runs."
+        }
+      ],
+      "notes": [
+        "read_table has no production caller at all; the conversion path is the other two functions, so adding feather only to EXTENSION_TO_READER makes the reader tests pass and leaves apb convert failing. (readers/dispatch.py:41-52; scripts/cli.py:204 and :473)",
+        "apb_studio is a second consumer of the dispatch layer and gets feather for free: it calls read_table_columns from two modules. (apb_studio/src/apb_studio/capabilities.py:199 and testdata.py:132)",
+        "A behavioural consequence for the collaborator, not a bug: feather inherits parquet's contract, so the rule-derived string_columns set is ignored \u2014 an identifier column written as int64 will not be restored to text at read time, whereas the same column in a .tsv would have been protected. (readers/dispatch.py:59-67 (docstring and the .parquet bypass))",
+        "Feather V1 caveat: pyarrow.ipc.open_file raises ArrowInvalid on a V1 file while pd.read_feather reads both, and V1 is still writable from R via arrow::write_feather(version = 1), so a collaborator file is not guaranteed to be V2. (proposed column_names implementation for FeatherFormat)",
+        "The three registries have already drifted apart before feather is added: 4 keys in EXTENSION_TO_READER, 3 in EXTENSION_TO_STRING_PRESERVING_READER, and 4 hand-written arms in read_table_columns. (readers/dispatch.py:27-38 and :79-92)",
+        ".arrow and .ipc are the same container under other names, so if they appear later it is one more registry line pointing at the same instance \u2014 no new class. (proposed _BY_SUFFIX registry)",
+        "The win of the redesign is stated as a type-checker guarantee rather than tidiness: under a TabularFormat Protocol, Pyright forces a new format class to implement all three operations, so 'the compiler, not a grep, tells the next person about site 2 and site 3'. (proposed readers/dispatch.py Protocol)",
+        "Explicitly does NOT flag three near-miss candidates: FixedDelimiterText.delimiter holding ',' is not stringly-typed dispatch because nothing compares it to literals; detect_text_delimiter and detect_decimal_separator are content inference, not kind dispatch; annotation/loader.py:62-71 is a different case set and must not be unified. (readers/tabular.py:19-56; annotation/loader.py:62-71)"
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.8889,
+        "stddev": 0.0786,
+        "min": 0.8333,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 461.2333,
+        "stddev": 76.2155,
+        "min": 361.5,
+        "max": 546.5
+      },
+      "tokens": {
+        "mean": 117725.6667,
+        "stddev": 15881.6906,
+        "min": 95968,
+        "max": 133431
+      }
+    },
+    "old_skill": {
+      "pass_rate": {
+        "mean": 0.9444,
+        "stddev": 0.0786,
+        "min": 0.8333,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 352.7,
+        "stddev": 24.188,
+        "min": 325.4,
+        "max": 384.2
+      },
+      "tokens": {
+        "mean": 93620.6667,
+        "stddev": 7808.3535,
+        "min": 83208,
+        "max": 102011
+      }
+    },
+    "delta": {
+      "pass_rate": "-0.0555",
+      "time_seconds": "+108.5",
+      "tokens": "+24105"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "run_id": "eval-2-with_skill",
+  "expectations": [
+    {
+      "text": "Answers the literal question: names the concrete places .feather has to be registered today",
+      "passed": true,
+      "evidence": "'Option A — the minimum honest patch' lists four concrete edits with file and line: read_feather in readers/tabular.py beside read_parquet (L136); '\".feather\": read_feather' in dispatch.py L27-32; widening L66 to 'if suffix in {\".parquet\", \".feather\"}'; a fourth arm at L79-92 returning pyarrow.ipc schema names. Verified all four locations exist as described in readers/dispatch.py."
+    },
+    {
+      "text": "Counts the extension set as enumerated in 3 or more places in readers/dispatch.py",
+      "passed": true,
+      "evidence": "\"it is not one place, it is **three**\" with a table: read_table (L41-52) via EXTENSION_TO_READER (L27-32); read_table_preserving_strings (L55-74) via an if at L66 plus EXTENSION_TO_STRING_PRESERVING_READER (L34-38); read_table_columns (L77-93) via an if/elif chain (L79-92). Verified exact against the 93-line file."
+    },
+    {
+      "text": "Identifies readers/tabular.py's six delimiter-binding wrappers as pre-composed duplication",
+      "passed": false,
+      "evidence": "Not identified. tabular.py is mentioned only twice — as the place to add read_feather ('beside read_parquet (L136)') and as already containing the parameterised helpers (_read_delimited, _read_delimited_preserving_strings, read_delimited_columns, detect_text_delimiter). The six wrappers (read_csv, read_csv_preserving_strings, read_tsv, read_tsv_preserving_strings, read_detected_text, read_detected_text_preserving_strings at tabular.py:84-122) are never named, never counted, and never characterised as pre-composed duplication. The DelimitedText(delimiter) remedy would in fact orphan all six plus their dispatch.py imports, and the report does not say so."
+    },
+    {
+      "text": "Proposes making the format a type so adding a format becomes one registry entry",
+      "passed": true,
+      "evidence": "\"One class per format, three methods, one registry\": DelimitedText / SniffedText / ParquetFile / FeatherFile with read / read_preserving_strings / column_names, 'type TabularFormat = ...', a single _BY_EXTENSION dict, format_for(path), and the three public functions as one-line delegations. \"Adding the sixth format then means writing one class the type checker forces you to complete, plus one dict entry — instead of four edits nothing forces you to find.\""
+    },
+    {
+      "text": "Does not simply say 'add it in these three places' with no design observation",
+      "passed": true,
+      "evidence": "Option A is explicitly framed as the setup for the design finding: \"Four edits in two files, three of which nothing forces you to find. That asymmetry is the finding below.\" A full finding section follows (shape/bounds/gates, remedy, rejected candidates, tests/docs/diagnostics follow-through)."
+    },
+    {
+      "text": "Respects the read-only instruction: no file under apb/ was modified",
+      "passed": true,
+      "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Note: the prompt did not actually instruct read-only, so this assertion is unearned by construction for all runs."
+    }
+  ],
+  "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83}
+}

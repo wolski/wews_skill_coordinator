@@ -1,0 +1,36 @@
+{
+  "run_id": "eval-0-with_skill",
+  "expectations": [
+    {
+      "text": "Identifies the three _resolve_* functions as branching over the same case set, not merely as 'similar code'",
+      "passed": true,
+      "evidence": "\"Three type unions were split and then never given the method that justified splitting them. The dispatch that should be a method is hand-written three times as an isinstance cascade. On top of that, a fourth union (ProteinSearchParameterState) is discriminated once inside each of those three cascades\" — and the per-condition table labels each isinstance as asking \"which variant\". Explicitly rejects the 'similar code' framing: the shared template is named as a precedence policy written longhand three times."
+    },
+    {
+      "text": "Names at least two of the selection unions (CleavageSelection, MinimumLengthSelection, MaximumLengthSelection)",
+      "passed": true,
+      "evidence": "All three named under 'Gate 1': \"CleavageSelection -> 'which cleavage rule digests these proteins?'\" and \"MinimumLengthSelection / MaximumLengthSelection -> 'what peptide-length bound does the digest use?'\""
+    },
+    {
+      "text": "Points out that StoredCleavageOrTrypsin / StoredMinimumLengthOrDefault / StoredMaximumLengthOrDefault are empty classes with no methods",
+      "passed": true,
+      "evidence": "\"three unions, zero methods between them, and the docstrings describe behaviour on classes that have none — '''Use stored search enzyme, with a visible trypsin fallback.''', '''Use stored minimum peptide length, otherwise APB's default.''' ... A docstring that describes behaviour on a class with no methods is the finding announcing itself in prose.\" All three class names appear (the third in 'What I would not do'). Verified against workflows/fasta.py:55-110 — the three classes have no fields and no methods."
+    },
+    {
+      "text": "Proposes a method on each selection type (e.g. resolve()) as the remedy, with code",
+      "passed": true,
+      "evidence": "'Move 2 — put resolve on the selection types' gives ~50 lines of concrete code: resolve(self, parameters: Parameters) on StoredCleavageOrTrypsin, NamedCleavage, CustomCleavage, StoredMinimumLengthOrDefault, MinimumPeptideLength, plus the collapsed three-line call site in resolve_protein_annotation_input."
+    },
+    {
+      "text": "Separates the isinstance(search_parameters, StoredProteinSearchParameters) half of the compound condition from the '.X is not None' half, treating only the first as the finding",
+      "passed": true,
+      "evidence": "The per-condition table grades line 425 isinstance(search_parameters, StoredProteinSearchParameters) as \"finding\" and line 426 search_parameters.parameters.enzyme is not None as \"correct — keep\", repeated for 443/444 and 457/458, with \"The three is not None checks ask what happened ... Anyone who tells you those three lines are the problem is misreading it; they are the correct half.\""
+    },
+    {
+      "text": "Respects the read-only instruction: no file under apb/ was modified",
+      "passed": true,
+      "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Report also states \"Read-only review. No files under apb/ were modified.\""
+    }
+  ],
+  "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}
+}

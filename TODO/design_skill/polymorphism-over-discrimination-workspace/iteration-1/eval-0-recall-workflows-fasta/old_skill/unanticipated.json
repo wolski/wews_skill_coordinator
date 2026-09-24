@@ -1,0 +1,41 @@
+{
+  "run_id": "eval-0-old_skill",
+  "unanticipated_findings": [
+    {
+      "summary": "The PeptideValidation union escapes its factory and is re-discriminated by a byte-identical expression at two sites in a different module; recommended as the single highest-priority fix in the report ('if you only do one thing from this review, do this one').",
+      "location": "adapters/anndata/fasta.py:585-588 and :615-618",
+      "looks_correct": true,
+      "note": "Verified byte-identical in the source. The prioritisation argument is sound on the report's own stated criterion (case set crossing a module boundary is stronger evidence than same-module repetition), and it is the sharper call of the two runs on this finding."
+    },
+    {
+      "summary": "The default peptide-length pair is declared in three places with two different values; count_peptides defaults min_length=6 while the rest of the package uses 7.",
+      "location": "workflows/fasta.py:51-52; fasta/annotation.py:128-129; fasta/annotation.py:180-181",
+      "looks_correct": true,
+      "note": "Verified. Correctly bounded as latent, not live ('the production path always passes explicit values ... so the 6 is only reachable by calling count_peptides directly — which the tests do')."
+    },
+    {
+      "summary": "_packaged_documents() re-reads and re-parses every packaged rule document on each call, so select_rule_from_parameters pays the full document load per level while select_rules_from_parameters correctly hoists it out of the loop.",
+      "location": "workflows/conversion.py:113 (definition), :76 and :93 (callers)",
+      "looks_correct": true,
+      "note": "Verified there is no caching decorator on _packaged_documents and the plural function hoists it above the LEVELS loop while the singular calls it inline. Correctly flagged as latent rather than live ('the CLI calls it once per invocation'). with_skill saw the same asymmetry but used it as a reason NOT to collapse the two functions; this run frames it as a latent cost — both readings are consistent with the code."
+    },
+    {
+      "summary": "The 'split the union and stop' pattern is the house idiom, not a local slip: six Stored-vs-explicit unions across two modules, 14 classes total, zero methods on any of them — including FastaAccessionsSelection and ReportedProteinsSelection in the adapter.",
+      "location": "workflows/fasta.py (4 unions); adapters/anndata/fasta.py:169 and :187",
+      "looks_correct": true,
+      "note": "Both adapter unions exist at the cited lines with the stated member counts, and the four workflow unions are method-free as claimed. This generalisation is the most valuable thing in the report and no assertion covers it. Caveat: the prose says 'twelve classes' while the report's own table sums to 14 — an internal inconsistency in the report, not a wrong claim about the code."
+    },
+    {
+      "summary": "The 'software_version' / 'columns' string in conversion.py is a provenance label, not a laundered discriminator — nothing in the package compares against those literals — and the third Literal member 'rule_config' is produced only by tests and the CLI's explicit-rule path.",
+      "location": "workflows/conversion.py:82, :108",
+      "looks_correct": true,
+      "note": "A negative grep claim I could not exhaustively re-run, but with_skill reached the same conclusion independently by the same method, which raises confidence. Valuable because it pre-empts the wrong remedy (adding a selection_method() token method)."
+    },
+    {
+      "summary": "select_rule_from_parameters and select_rules_from_parameters must not be collapsed into one flag-parameterised function: the singular must raise RuleUnavailableError for the requested level, the plural must swallow it and skip.",
+      "location": "workflows/conversion.py:83-110",
+      "looks_correct": true,
+      "note": "Confirmed — the plural has 'except RuleUnavailableError: continue' inside the loop and the singular does not. A correct negative finding that protects against an over-eager DRY pass."
+    }
+  ]
+}

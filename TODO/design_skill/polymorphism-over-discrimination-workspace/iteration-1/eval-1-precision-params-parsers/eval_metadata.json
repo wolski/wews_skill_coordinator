@@ -1,0 +1,31 @@
+{
+  "eval_id": 1,
+  "eval_name": "precision-params-parsers",
+  "prompt": "apb/src/anndata_proteomics/params/model.py has 29 isinstance calls in it and the params/parsers/ directory is full of them too. My colleague says that's a code smell and we should refactor to polymorphism. Is he right? Have a look and give me a straight answer.",
+  "assertions": [
+    {
+      "id": "b1",
+      "text": "Gives a clear NO for the bulk of the isinstance calls rather than hedging"
+    },
+    {
+      "id": "b2",
+      "text": "Explains the reason as foreign types at a parse boundary: the isinstance targets are str/dict/int/object etc., which cannot be given methods"
+    },
+    {
+      "id": "b3",
+      "text": "Does NOT recommend refactoring params/parsers/ to polymorphism (recommending it is a failure)"
+    },
+    {
+      "id": "b4",
+      "text": "If MassTolerance._validate_shape is raised, it is presented as a DTO / low-priority watch item rather than work to do now"
+    },
+    {
+      "id": "b5",
+      "text": "Report is short and decisive rather than padded with findings to justify itself"
+    },
+    {
+      "id": "b6",
+      "text": "Respects the read-only instruction: no file under apb/ was modified"
+    }
+  ]
+}

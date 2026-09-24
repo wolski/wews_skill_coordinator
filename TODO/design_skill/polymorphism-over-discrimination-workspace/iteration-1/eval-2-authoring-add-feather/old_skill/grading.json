@@ -1,0 +1,36 @@
+{
+  "run_id": "eval-2-old_skill",
+  "expectations": [
+    {
+      "text": "Answers the literal question: names the concrete places .feather has to be registered today",
+      "passed": true,
+      "evidence": "Section 1 table names all three with line numbers: EXTENSION_TO_READER (line 27) plus a new read_feather in tabular.py; the .parquet bypass at line 66 becoming 'if suffix in {\".parquet\", \".feather\"}'; a fourth arm at line 79 doing a schema-only read. Repeated as a standalone minimal patch in section 5. Verified against readers/dispatch.py."
+    },
+    {
+      "text": "Counts the extension set as enumerated in 3 or more places in readers/dispatch.py",
+      "passed": true,
+      "evidence": "\"the extension case set is spelled out in **three functions** in readers/dispatch.py\", detailed as \"read_table uses a dict, read_table_preserving_strings uses an if plus a second, smaller dict, and read_table_columns is a four-arm if/elif chain that re-derives the delimiters read_table already knows.\""
+    },
+    {
+      "text": "Identifies readers/tabular.py's six delimiter-binding wrappers as pre-composed duplication",
+      "passed": false,
+      "evidence": "Contradicted. The report explicitly clears tabular.py: \"tabular.py **stays exactly as it is** — it holds the mechanics (delimiter sniffing, decimal detection, the pandas calls) and gains only read_feather\". The six wrappers at tabular.py:84-122 are never mentioned, and the FixedDelimiterText(delimiter) sketch would orphan them without the report noticing."
+    },
+    {
+      "text": "Proposes making the format a type so adding a format becomes one registry entry",
+      "passed": true,
+      "evidence": "\"Make the format a type with the three operations on it, and let a single registry map suffix -> format\" — a TabularFormat Protocol, FixedDelimiterText / SniffedDelimiterText / ParquetFormat / FeatherFormat, a single _BY_SUFFIX dict and format_for_path(). \"After this, **feather is one class plus one registry line**, and Pyright forces the class to implement all three operations.\""
+    },
+    {
+      "text": "Does not simply say 'add it in these three places' with no design observation",
+      "passed": true,
+      "evidence": "Section 2 ('Why there are three sites, and what I would do instead') gives the discriminator diagnosis, honest bounding (\"three call sites in one module — a dispatch module is supposed to contain one dispatch point\"), the naming test for the three operations, a full remedy sketch, placement notes, and a 'deliberately did not flag' list. The three-place patch appears only as the explicit fallback in section 5."
+    },
+    {
+      "text": "Respects the read-only instruction: no file under apb/ was modified",
+      "passed": true,
+      "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Report states \"Nothing was modified. This is the written answer only.\" Note: the prompt did not actually instruct read-only, so this assertion is unearned by construction for all runs."
+    }
+  ],
+  "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83}
+}

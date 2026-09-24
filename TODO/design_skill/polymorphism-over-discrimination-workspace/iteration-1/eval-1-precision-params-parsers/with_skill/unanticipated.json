@@ -1,0 +1,53 @@
+{
+  "run_id": "eval-1-with_skill",
+  "unanticipated_findings": [
+    {
+      "summary": "The Unimod lookup-result union (UnimodMatch / UnrecognizedUnimodName / UnrecognizedUnimodMass) is discriminated in three separate modules with no method on any member — the one finding in params/ that clears a cross-module bound.",
+      "location": "params/parsers/sage.py:25; params/parsers/fragpipe.py:190; params/model.py:522 (types at modifications/unimod_registry.py:42-60)",
+      "looks_correct": true,
+      "note": "Verified: those are exactly the three isinstance(…, UnimodMatch) sites outside unimod_registry.py itself, in three different modules. This is the strongest thing either eval-1 run found and no assertion covers it. The proposed display_name(fallback) method with identity arms is a genuine remedy, not a token accessor."
+    },
+    {
+      "summary": "The report also correctly excludes model.py:547 from that finding: that branch picks a search strategy (name lookup failed, try mass lookup) rather than a behaviour of the result, so no method should absorb it.",
+      "location": "params/model.py:547 (_find_modification)",
+      "looks_correct": true,
+      "note": "The site exists as described. A precise negative call that keeps the remedy from over-reaching — worth crediting because it is the discipline the skill is supposed to install."
+    },
+    {
+      "summary": "fragpipe.py writes data['max_precursor_mz'] twice: once unconditionally at the top of _add_variant_parameter_data and again inside the BoundedChargeRange branch.",
+      "location": "params/parsers/fragpipe.py:503 and :517",
+      "looks_correct": true,
+      "note": "Verified in the source. The report's judgement that it is not a bug (both formulas reduce to digest_mass.maximum / charge.minimum) is arithmetically plausible for the maximum m/z. Both eval-1 runs found this independently."
+    },
+    {
+      "summary": "_add_variant_parameter_data fabricates LowerBoundedChargeRange(minimum=charge_range.minimum) — an instance of the OTHER member of the union it was handed — purely so the value type-checks against a helper it cannot otherwise reach.",
+      "location": "params/parsers/fragpipe.py:503-506",
+      "looks_correct": true,
+      "note": "Verified verbatim in the source. This is the sharpest single piece of evidence in either eval-1 report: downcasting to the sibling variant to borrow a function is the missing method announcing itself. Only this run found it."
+    },
+    {
+      "summary": "FragPipeVariantData is a TypedDict(total=False) with six optional fields — 2^6 possible shapes — whose docstring says 'Fields whose presence depends on tagged workflow stages'; it exists only because the projection is done by discrimination.",
+      "location": "params/parsers/fragpipe.py:151-159",
+      "looks_correct": true,
+      "note": "Verified: TypedDict, total=False, six fields, that exact docstring. Connects the optional-field record to the branching that produces it, which is the harder half of the argument."
+    },
+    {
+      "summary": "A count-driven refactor would have started in the wrong file: maxquant.py has the second-highest isinstance count in params/ (13) and every one is a foreign target, so it contains zero findings.",
+      "location": "params/parsers/maxquant.py",
+      "looks_correct": true,
+      "note": "Count of 13 verified by grep. The all-foreign claim is consistent with the file walking a parsed mqpar/XML structure, and old_skill independently reports 13 calls / 0 owned types. This directly answers the user's colleague on his own terms."
+    },
+    {
+      "summary": "The user's premise is slightly off and the report corrects it without making a fuss: model.py has 32 isinstance calls today, not 29, and params/ as a whole has 71.",
+      "location": "params/model.py; params/",
+      "looks_correct": true,
+      "note": "Verified both numbers exactly (32 and 71). old_skill reports the same two totals."
+    },
+    {
+      "summary": "Package-wide claim: 18 identity types exist with zero methods on any of them, making 'split the union and never add the method' the most common finding in the package.",
+      "location": "not localised; attributed to scripts/find_candidates.py output",
+      "looks_correct": true,
+      "note": "Plausible but not independently verifiable from the report — it rests on a tool run I cannot reproduce here. I did confirm the pattern is real in the neighbourhood (description.py alone holds six Missing* identity types), so the direction is right even if the exact count is unchecked. old_skill gives 19 for a similar-sounding population, so the two runs disagree by one on an unverifiable number."
+    }
+  ]
+}

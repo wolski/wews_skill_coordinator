@@ -1,0 +1,53 @@
+{
+  "run_id": "eval-2-old_skill",
+  "unanticipated_findings": [
+    {
+      "summary": "read_table has no production caller at all; the conversion path is the other two functions, so adding feather only to EXTENSION_TO_READER makes the reader tests pass and leaves apb convert failing.",
+      "location": "readers/dispatch.py:41-52; scripts/cli.py:204 and :473",
+      "looks_correct": true,
+      "note": "Verified — no read_table( call exists in apb/src or apb_studio/src outside the definition, and both cli.py line numbers are exact. Found by both runs."
+    },
+    {
+      "summary": "apb_studio is a second consumer of the dispatch layer and gets feather for free: it calls read_table_columns from two modules.",
+      "location": "apb_studio/src/apb_studio/capabilities.py:199 and testdata.py:132",
+      "looks_correct": true,
+      "note": "Verified both call sites and their imports. Only this run checked the sibling repo, which matters for the 'nothing outside readers/ needs to change' claim — with_skill asserted the same scope conclusion without looking at apb_studio."
+    },
+    {
+      "summary": "A behavioural consequence for the collaborator, not a bug: feather inherits parquet's contract, so the rule-derived string_columns set is ignored — an identifier column written as int64 will not be restored to text at read time, whereas the same column in a .tsv would have been protected.",
+      "location": "readers/dispatch.py:59-67 (docstring and the .parquet bypass)",
+      "looks_correct": true,
+      "note": "Correct reading of the code: the .parquet arm returns read_parquet(path) and never consults string_columns, and the docstring says conversion applies the logical contract afterward. This is the only finding in either eval-2 run that addresses what the user's collaborator will actually experience, and no assertion covers it."
+    },
+    {
+      "summary": "Feather V1 caveat: pyarrow.ipc.open_file raises ArrowInvalid on a V1 file while pd.read_feather reads both, and V1 is still writable from R via arrow::write_feather(version = 1), so a collaborator file is not guaranteed to be V2.",
+      "location": "proposed column_names implementation for FeatherFormat",
+      "looks_correct": true,
+      "note": "I could not verify this — it needs a V1 file I do not have, and the run claims 'I verified this'. It is specific and technically plausible (V1 is not an IPC stream/file container). Notably the recommendation is the disciplined one: write the IPC read now, switch to a full read if a V1 file ever appears, and 'do not add FeatherV1 / FeatherV2 classes or a try/except version branch speculatively'. This is the standout old-skill finding and with_skill missed the risk entirely while recommending the same ipc.open_file call."
+    },
+    {
+      "summary": "The three registries have already drifted apart before feather is added: 4 keys in EXTENSION_TO_READER, 3 in EXTENSION_TO_STRING_PRESERVING_READER, and 4 hand-written arms in read_table_columns.",
+      "location": "readers/dispatch.py:27-38 and :79-92",
+      "looks_correct": true,
+      "note": "Verified exactly (4 / 3 / 4). Used as the evidence that carries an otherwise same-module finding: 'What makes it actionable is that the same case set appears three times past that lookup, the registries have already drifted apart ... and you are about to add a fourth format.'"
+    },
+    {
+      "summary": ".arrow and .ipc are the same container under other names, so if they appear later it is one more registry line pointing at the same instance — no new class.",
+      "location": "proposed _BY_SUFFIX registry",
+      "looks_correct": true,
+      "note": "Technically correct (all three are Arrow IPC file format). A small but real payoff argument for the type-based design that with_skill did not make."
+    },
+    {
+      "summary": "The win of the redesign is stated as a type-checker guarantee rather than tidiness: under a TabularFormat Protocol, Pyright forces a new format class to implement all three operations, so 'the compiler, not a grep, tells the next person about site 2 and site 3'.",
+      "location": "proposed readers/dispatch.py Protocol",
+      "looks_correct": true,
+      "note": "Correct as stated for a Protocol-typed registry value. This is the argument that connects the design change back to the concrete failure mode the report opened with, and it is the report's strongest justification."
+    },
+    {
+      "summary": "Explicitly does NOT flag three near-miss candidates: FixedDelimiterText.delimiter holding ',' is not stringly-typed dispatch because nothing compares it to literals; detect_text_delimiter and detect_decimal_separator are content inference, not kind dispatch; annotation/loader.py:62-71 is a different case set and must not be unified.",
+      "location": "readers/tabular.py:19-56; annotation/loader.py:62-71",
+      "looks_correct": true,
+      "note": "All three calls are correct against the source. Worth recording because the failure mode this eval risks is over-application, and these are the guard rails against it."
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "eval_id": 0,
+  "eval_name": "recall-workflows-fasta",
+  "prompt": "Can you look over apb/src/anndata_proteomics/workflows/fasta.py and workflows/conversion.py and tell me if the design is OK? The _resolve_cleavage / _resolve_minimum_length / _resolve_maximum_length trio has bugged me for a while, it feels repetitive but I can't articulate why. Don't change any code, just tell me what you find and what you'd do instead.",
+  "assertions": [
+    {
+      "id": "a1",
+      "text": "Identifies the three _resolve_* functions as branching over the same case set, not merely as 'similar code'"
+    },
+    {
+      "id": "a2",
+      "text": "Names at least two of the selection unions (CleavageSelection, MinimumLengthSelection, MaximumLengthSelection)"
+    },
+    {
+      "id": "a3",
+      "text": "Points out that StoredCleavageOrTrypsin / StoredMinimumLengthOrDefault / StoredMaximumLengthOrDefault are empty classes with no methods"
+    },
+    {
+      "id": "a4",
+      "text": "Proposes a method on each selection type (e.g. resolve()) as the remedy, with code"
+    },
+    {
+      "id": "a5",
+      "text": "Separates the isinstance(search_parameters, StoredProteinSearchParameters) half of the compound condition from the '.X is not None' half, treating only the first as the finding"
+    },
+    {
+      "id": "a6",
+      "text": "Respects the read-only instruction: no file under apb/ was modified"
+    }
+  ]
+}

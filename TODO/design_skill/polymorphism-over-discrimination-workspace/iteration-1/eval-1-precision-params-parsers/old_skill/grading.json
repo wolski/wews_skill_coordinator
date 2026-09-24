@@ -1,0 +1,36 @@
+{
+  "run_id": "eval-1-old_skill",
+  "expectations": [
+    {
+      "text": "Gives a clear NO for the bulk of the isinstance calls rather than hedging",
+      "passed": true,
+      "evidence": "\"**Short answer: no, your colleague is wrong about this code** — but he is right about the principle\". Table shows 'Survive review' = 0 for every file in params/, including model.py's 32 calls."
+    },
+    {
+      "text": "Explains the reason as foreign types at a parse boundary: the isinstance targets are str/dict/int/object etc., which cannot be given methods",
+      "passed": true,
+      "evidence": "\"Of the 71 isinstance calls in apb/src/anndata_proteomics/params/, 51 narrow types you did not write (str, dict, list, int, float, bool, Path, bytes, pd.Series, BaseModel). You cannot put a method on dict. Those are parse-boundary narrowing, which is correct Python\". Also \"The thing being dispatched on in all four is typed object. It arrives from a vendor file, a CSV cell, or a .uns payload. There is no type to hang a method on.\""
+    },
+    {
+      "text": "Does NOT recommend refactoring params/parsers/ to polymorphism (recommending it is a failure)",
+      "passed": true,
+      "evidence": "Explicitly declines: \"**If he wants a target for this, params/ is the wrong directory.**\" The one item raised inside params/parsers/ (the uses_diann boolean in fragpipe.py) is de-scoped in the same breath: \"Call it optional cleanup on the next occasion someone is in that file. It does not justify a refactor of its own.\" _add_variant_parameter_data is explicitly rated NOT the worst code: \"It isn't, because every one of those unions is discriminated in exactly that one function — there is no scattered case set.\""
+    },
+    {
+      "text": "If MassTolerance._validate_shape is raised, it is presented as a DTO / low-priority watch item rather than work to do now",
+      "passed": true,
+      "evidence": "Section titled \"The one that looks worst, and why it still isn't a finding\": \"you would get two record shapes with no behaviour between them, which is a schema, not a polymorphism ... A combination-rejecting validator on a document schema is correct and stays.\" Ends \"**Revisit this if that changes.** ... Today the validator is doing its job.\""
+    },
+    {
+      "text": "Report is short and decisive rather than padded with findings to justify itself",
+      "passed": true,
+      "evidence": "174 lines / 9,685 chars / 1,447 words — the shortest of the six reports. Bold one-sentence verdict in line 3, one counts table, one finding, and an explicit refusal to inflate: \"It does not justify a refactor of its own.\" No remedy code beyond a five-line sketch."
+    },
+    {
+      "text": "Respects the read-only instruction: no file under apb/ was modified",
+      "passed": true,
+      "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree)."
+    }
+  ],
+  "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}
+}

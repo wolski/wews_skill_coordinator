@@ -1,0 +1,96 @@
+diff -ruN a/projects/wews_skill_coordinator/repos/fgcz-skills/communication/skills/interview-to-spec/SKILL.md b/projects/wews_skill_coordinator/repos/fgcz-skills/communication/skills/interview-to-spec/SKILL.md
+--- a/projects/wews_skill_coordinator/repos/fgcz-skills/communication/skills/interview-to-spec/SKILL.md	2026-09-24 13:25:05
++++ b/projects/wews_skill_coordinator/repos/fgcz-skills/communication/skills/interview-to-spec/SKILL.md	2026-09-24 13:25:05
+@@ -152,6 +152,6 @@
+ 
+ ## Related
+ 
+-Complements a separate **talking-to-humans** skill (planned — fgcz/skills PR #23) that calibrates *how* a single
++Complements the **talking-to-humans** skill, which calibrates *how* a single
+ reply is phrased. This skill governs the *shape of the conversation*; talking-to-humans the *shape of each message*
+ inside it.
+diff -ruN a/projects/wews_skill_coordinator/repos/fgcz-skills/proteomics-data-analysis/skills/adding-models-to-prolfqua/SKILL.md b/projects/wews_skill_coordinator/repos/fgcz-skills/proteomics-data-analysis/skills/adding-models-to-prolfqua/SKILL.md
+--- a/projects/wews_skill_coordinator/repos/fgcz-skills/proteomics-data-analysis/skills/adding-models-to-prolfqua/SKILL.md	2026-09-24 13:25:05
++++ b/projects/wews_skill_coordinator/repos/fgcz-skills/proteomics-data-analysis/skills/adding-models-to-prolfqua/SKILL.md	2026-09-24 13:25:05
+@@ -25,7 +25,7 @@
+ - required factors exist in `lfqdata$factors()`
+ - the data is already transformed if the backend expects log scale
+ 
+-Only then decide whether the backend consumes nested subject-wise data or `lfqdata$to_wide(as.matrix = TRUE)`. That choice is secondary to the interface contract.
++Only then decide whether the backend consumes nested subject-wise data or `lfqdata$data_wide(as.matrix = TRUE)`. That choice is secondary to the interface contract.
+ 
+ ## Step 2: Implement The Model Adapter First
+ Every new backend should have a `Model*` adapter inheriting `ModelInterface`.
+@@ -63,6 +63,7 @@
+ - `get_contrasts()`
+ - `get_Plotter()`
+ - `to_wide()`
++- `get_missing()`
+ 
+ The interface ships **default implementations** of the following that read the
+ backend's `ContrastConfiguration`, so most backends do not need to override:
+@@ -152,12 +153,12 @@
+ model_fun <- function(x, pb, get_formula = FALSE) {
+   if (get_formula) return(formula)
+   if (!missing(pb)) pb$tick()
+-  tryCatch(fit_backend(formula, data = x), error = .ehandler)
++  tryCatch(fit_backend(formula, data = x), error = .error_handler)
+ }
+ ```
+ 
+ Rules:
+-- failures must return a character string via `.ehandler`, not `NULL`
++- failures must return a character string via `.error_handler`, not `NULL`
+ - `model_analyse()` uses `!is.character(x)` as success
+ - `contrast_fun` must return tidy contrast statistics
+ 
+@@ -200,7 +201,7 @@
+ 
+ Follow existing names like:
+ - `ContrastsLMFacade`
+-- `ContrastsLmerFacade`
++- `ContrastsLmerNestedFacade`
+ - `ContrastsLimmaFacade`
+ 
+ The facade is the final integration point. If the facade feels awkward, the underlying adapter design is usually still wrong.
+@@ -208,8 +209,8 @@
+ ### Registering a facade
+ 
+ `prolfqua::FACADE_REGISTRY` is the named index of built-in facades.
+-For a facade that lives **inside** `prolfqua`, add a `.builtin_facade_entry`
+-call in `R/ContrastsFacades.R`.
++For a facade that lives **inside** `prolfqua`, add an entry to the `entries`
++list in `.seed_facade_registry()` in `R/ContrastsFacades.R`.
+ 
+ For a facade that lives in a **downstream package** (e.g.
+ `prolfquasaint::ContrastsSAINTFacade`), register it from the
+@@ -299,7 +300,7 @@
+       `initialize()` and accurately names the backend's columns + flags
+ - [ ] facade inherits from `ContrastsInterface` and sets
+       `self$config <- self$contrast$get_config()`
+-- [ ] facade is registered (built-in via `.builtin_facade_entry` or
++- [ ] facade is registered (built-in via `.seed_facade_registry()` or
+       downstream via `register_facade()` in `.onLoad`)
+ - [ ] backend-specific columns either match the standard schema or are
+       resolved generically through `cfg$*_col` accessors
+diff -ruN a/projects/wews_skill_coordinator/repos/fgcz-skills/proteomics-data-analysis/skills/phosphoproteomics-ptm-analysis/SKILL.md b/projects/wews_skill_coordinator/repos/fgcz-skills/proteomics-data-analysis/skills/phosphoproteomics-ptm-analysis/SKILL.md
+--- a/projects/wews_skill_coordinator/repos/fgcz-skills/proteomics-data-analysis/skills/phosphoproteomics-ptm-analysis/SKILL.md	2026-09-24 13:25:05
++++ b/projects/wews_skill_coordinator/repos/fgcz-skills/proteomics-data-analysis/skills/phosphoproteomics-ptm-analysis/SKILL.md	2026-09-24 13:25:05
+@@ -36,7 +36,7 @@
+ **Key prolfqua patterns:**
+ ```r
+ # R6 object creation
+-lfq_data <- prolfqua::LFQData$new(lfq_config, data)
++lfq_data <- prolfqua::LFQData$new(data, lfq_config)
+ 
+ # Model building
+ strategy <- prolfqua::strategy_lm()
+@@ -167,7 +167,7 @@
+ dpu_result <- prophosqua::test_diff(
+   site_data,
+   protein_data,
+-  join_by = c("protein_Id", "contrast")
++  join_column = c("protein_Id", "contrast")
+ )
+ ```
+ 

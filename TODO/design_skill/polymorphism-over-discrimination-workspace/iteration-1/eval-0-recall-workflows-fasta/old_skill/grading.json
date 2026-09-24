@@ -1,0 +1,36 @@
+{
+  "run_id": "eval-0-old_skill",
+  "expectations": [
+    {
+      "text": "Identifies the three _resolve_* functions as branching over the same case set, not merely as 'similar code'",
+      "passed": true,
+      "evidence": "\"It is not that the three functions are near-copies of each other (they are, but that is a symptom). It is that twelve classes were created to remove a branch, and then none of them was given the behaviour, so every branch is still there\" plus \"ProteinSearchParameterState is branched on in three separate functions (lines 425, 443, 457) with a character-for-character identical first conjunct. That is the objective, countable part of the finding.\""
+    },
+    {
+      "text": "Names at least two of the selection unions (CleavageSelection, MinimumLengthSelection, MaximumLengthSelection)",
+      "passed": true,
+      "evidence": "Evidence table rows: 'CleavageSelection | workflows/fasta.py | 3 | 0', 'MinimumLengthSelection | ... | 2 | 0', 'MaximumLengthSelection | ... | 2 | 0'."
+    },
+    {
+      "text": "Points out that StoredCleavageOrTrypsin / StoredMinimumLengthOrDefault / StoredMaximumLengthOrDefault are empty classes with no methods",
+      "passed": true,
+      "evidence": "Quotes StoredCleavageOrTrypsin and StoredMinimumLengthOrDefault verbatim then states \"Empty classes. No fields, no methods. And the docstring on each one is a verb phrase describing what to do\". The third is covered by the table row 'MaximumLengthSelection | 2 classes | 0 methods'. Verified accurate against workflows/fasta.py:55-110."
+    },
+    {
+      "text": "Proposes a method on each selection type (e.g. resolve()) as the remedy, with code",
+      "passed": true,
+      "evidence": "'Move 1 — put the behaviour on the selection types' gives resolve(self, stored: ProteinSearchParameterState) code for NamedCleavage, CustomCleavage and StoredCleavageOrTrypsin, plus the three-line collapsed call site and 'the three private _resolve_* functions are deleted'."
+    },
+    {
+      "text": "Separates the isinstance(search_parameters, StoredProteinSearchParameters) half of the compound condition from the '.X is not None' half, treating only the first as the finding",
+      "passed": true,
+      "evidence": "\"So the compound if at lines 443-445 (and 425-427, and 457-459) is half a defect and half correct code fused into one condition.\" The annotated snippet marks isinstance as \"what IS this state?\" and min_peptide_length is not None as \"what HAPPENED?\", with \"That is ordinary control flow, it is correct, and it must stay.\""
+    },
+    {
+      "text": "Respects the read-only instruction: no file under apb/ was modified",
+      "passed": true,
+      "evidence": "git -C /Users/wolski/projects/anndata_bridge/apb status --porcelain returns empty (clean tree). Report states \"Read-only review. No code changed.\""
+    }
+  ],
+  "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}
+}
