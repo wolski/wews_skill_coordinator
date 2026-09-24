@@ -31,6 +31,10 @@ When explicitly asked to plan, create a written plan and do not implement it unt
 
 When asked to analyze, review, investigate, or explain, remain read-only unless the user also asks for changes or an artifact.
 
+# Markdown source formatting
+
+When authoring or rewriting Markdown prose, do not hard-wrap paragraphs or list items to a fixed column width. Keep each paragraph and each list item on one physical line and rely on the editor's soft wrapping. Preserve line breaks only where Markdown structure requires them, such as blank lines, headings, separate list items, tables, block quotes, code blocks, or explicit hard breaks. Do not mechanically reflow unrelated existing text.
+
 # Implementation scope
 
 Make the smallest coherent change that solves the requested problem.
