@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from wews_skill_coordinator.config.checkout import source_root
 from wews_skill_coordinator.config.load import load_config
 from wews_skill_coordinator.skills.profiles import resolve_profile
 
@@ -51,11 +52,17 @@ def test_fgcz_profiles_mirror_configured_source_folders():
     assert len(resolve_profile("fgcz", config).skill_names) == 17
 
 
-def test_every_configured_local_skill_resolves_to_a_directory():
+def test_every_configured_skill_resolves_in_each_present_checkout():
+    """fgcz/skills is private, so CI has no checkout of it; the owned source is always here."""
     config = load_config()
+    present = {
+        name for name, source in config.local_sources.items() if source_root(source).is_dir()
+    }
+    assert "wews" in present
     selection = resolve_profile("full", config)
-    assert selection.missing == ()
-    assert {skill.name for skill in selection.local} == config.local_skill_names()
+    assert [miss for miss in selection.missing if miss.split(":")[0] in present] == []
+    expected = {r.name for r in config.references() if r.source in present}
+    assert {skill.name for skill in selection.local} == expected
     for skill in selection.local:
         assert (skill.directory / "SKILL.md").is_file()
 
