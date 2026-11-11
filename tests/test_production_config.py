@@ -32,8 +32,9 @@ def test_real_config_loads():
 
 def test_local_sources_are_declared():
     config = load_config()
-    assert set(config.local_sources) == {"wews", "fgcz"}
+    assert set(config.local_sources) == {"wews", "fgcz", "mailpull"}
     assert config.local_sources["wews"].owned
+    assert config.local_sources["mailpull"].owned
     assert not config.local_sources["fgcz"].owned
 
 

@@ -20,6 +20,12 @@ repo = "fgcz/skills"
 path = "repos/fgcz-skills"
 git_url = "https://github.com/fgcz/skills.git"
 
+[sources.mailpull]
+repo = "wolski/mailpull"
+path = "../mailpull/skills"
+owned = true
+git_url = "https://github.com/wolski/mailpull.git"
+
 [sources.marimo]
 repo = "marimo-team/skills"
 
@@ -56,6 +62,7 @@ includes = [
     "fgcz-proteomics-data-analysis",
     "meta",
     "communication",
+    "mail",
 ]
 
 [profiles.python]
@@ -212,6 +219,10 @@ fgcz = [
 [profiles.communication]
 description = "Outreach to other researchers in Witold's name."
 wews = ["communication/scientific-outreach"]
+
+[profiles.mail]
+description = "Witold's local UZH/ETH mail mirror: search, read, send and delete."
+mailpull = ["email/mail"]
 
 [profiles.review]
 description = "Multi-perspective code review, finding verification, and software-manuscript review."
