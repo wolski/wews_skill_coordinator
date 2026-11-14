@@ -167,6 +167,7 @@ wews = [
     "r-development/r-development",
     "r-development/advanced-r-engineering",
     "r-development/bookdown",
+    "r-development/bioconductor-submission",
 ]
 posit = [
     "r-package-development",
