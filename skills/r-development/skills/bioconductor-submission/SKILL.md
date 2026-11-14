@@ -173,6 +173,12 @@ Report readiness as one line per check (passed / failed / not run), then the blo
 
 ## Phase 2: submit
 
+- **Squash the history before opening the issue, every time.**
+  - Why: at `/accept-policies` the bot clones the repo to BiocStaging, whose `devel` refuses force-pushes. Rewrite main after that and it can no longer push to BiocStaging; only a core-team reset of the staging repo fixes it.
+  - Collapse the fix-up and review-round commits.
+  - Keep co-authors' work with `Co-authored-by` trailers.
+  - Strip large blobs (`git filter-repo`) in the same pass.
+  - Tag the old history as a backup, force-push, and tell collaborators to `git fetch && git reset --hard origin/main`.
 - Draft the issue for **`Bioconductor/BiocContributions`**. The old `Bioconductor/Contributions` bot closes new issues with a redirect; agents have looked there by mistake twice. The issue:
   - title: the package name;
   - `Repository:` the GitHub URL;
