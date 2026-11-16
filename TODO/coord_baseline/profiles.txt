@@ -1,0 +1,67 @@
+  active: python-bfabric-proteomics
+  full
+    Every configured skill profile.
+    skills=72 (direct=0), includes=*
+  python-design
+    Wolski's bounded Python design guidance.
+    skills=5 (direct=5), includes=none
+  python-style
+    Wolski's Python style guide, kept out of the default profiles.
+    skills=1 (direct=1), includes=none
+  python-design-public
+    Public Python design-pattern guidance, without Wolski skills.
+    skills=1 (direct=1), includes=none
+  marimo
+    Marimo notebook authoring, migration, widgets, batch execution, and background jobs.
+    skills=9 (direct=9), includes=none
+  python
+    Broad Python engineering toolkit with design, workflow, plotting, scientific, and notebook support.
+    skills=21 (direct=7), includes=python-design, marimo
+  python-communication
+    Python development plus FGCZ communication workflows.
+    skills=22 (direct=0), includes=python, fgcz-communication
+  python-bfabric
+    Python development, FGCZ communication, and B-Fabric LIMS access.
+    skills=28 (direct=0), includes=python-communication, fgcz-bfabric-lims, meta
+  python-bfabric-proteomics
+    Python development, FGCZ communication, B-Fabric LIMS access, and proteomics/PTM data analysis.
+    skills=34 (direct=0), includes=python-bfabric, fgcz-proteomics-data-analysis
+  experimental
+    Skills still under development in this repository.
+    skills=1 (direct=1), includes=none
+  r
+    R development, package engineering, CLI design, testing, and prolfqua workflows.
+    skills=10 (direct=10), includes=none
+  science
+    Scientific Python analysis plus literature, sequence, structure, pathway, and expression databases.
+    skills=17 (direct=17), includes=none
+  fgcz-bfabric-lims
+    FGCZ B-Fabric LIMS access and dataset operations.
+    skills=4 (direct=4), includes=none
+  fgcz-communication
+    FGCZ communication and requirements-elaboration workflows.
+    skills=1 (direct=1), includes=none
+  fgcz-infrastructure
+    FGCZ infrastructure, GitLab, modules, and B-Fabric application execution.
+    skills=3 (direct=3), includes=none
+  fgcz-meta-skills
+    FGCZ context, governance, contribution, verification, and process guidance.
+    skills=6 (direct=6), includes=none
+  fgcz-proteomics-data-analysis
+    FGCZ proteomics modelling, differential analysis, PTM analysis, and pipeline repair.
+    skills=6 (direct=6), includes=none
+  proteomics
+    Proteomics conversion, differential analysis, PTM analysis, B-Fabric, and pipeline repair.
+    skills=11 (direct=1), includes=fgcz-bfabric-lims, fgcz-proteomics-data-analysis
+  fgcz
+    Every configured FGCZ source-folder profile.
+    skills=20 (direct=0), includes=fgcz-bfabric-lims, fgcz-communication, fgcz-infrastructure, fgcz-meta-skills, fgcz-proteomics-data-analysis
+  review
+    Multi-perspective code review, finding verification, and software-manuscript review.
+    skills=3 (direct=3), includes=none
+  meta
+    Skill creation and repository-level agent instruction authoring.
+    skills=2 (direct=2), includes=none
+  education
+    Generate structured school summaries, learning objectives, and practice materials.
+    skills=1 (direct=1), includes=none

@@ -1,0 +1,27 @@
+Installed plugins:
+
+  ❯ claude-md-management@claude-plugins-official
+    Version: 1.0.0
+    Scope: user
+    Status: ✔ enabled
+
+  ❯ code-review@claude-plugins-official
+    Version: b0ad13d1d618
+    Scope: user
+    Status: ✔ enabled
+
+  ❯ code-simplifier@claude-plugins-official
+    Version: 1.0.0
+    Scope: user
+    Status: ✔ enabled
+
+  ❯ hookify@claude-plugins-official
+    Version: b0ad13d1d618
+    Scope: user
+    Status: ✔ enabled
+
+  ❯ pyright-lsp@claude-plugins-official
+    Version: 1.0.0
+    Scope: user
+    Status: ✔ enabled
+

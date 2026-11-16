@@ -1,0 +1,6 @@
+  would run  npx --yes skills@1.5.23 add marimo-team/skills --skill marimo-notebook marimo-batch streamlit-to-marimo jupyter-to-marimo anywidget-generator wasm-compatibility add-molab-badge implement-paper --agent claude-code codex --global --yes
+  would run  npx --yes skills@1.5.23 add google-deepmind/science-skills --skill uv --agent claude-code codex --global --yes
+  would run  npx --yes skills@1.5.23 add anthropics/skills --skill skill-creator --agent claude-code codex --global --yes
+  would run  npx --yes skills@1.5.23 add netresearch/agent-rules-skill --skill agent-rules --agent claude-code codex --global --yes
+  would run  npx --yes skills@1.5.23 remove alphafold-database-fetch-and-analyze cli ensembl-database gtex-database human-protein-atlas-database lifecycle literature-search-europepmc literature-search-openalex ncbi-sequence-fetch pdb-database protein-sequence-msa protein-sequence-similarity-search pubmed-database python-design-patterns r-cli-app r-package-development reactome-database string-database testing-r-packages uniprot-database --global --yes
+  active profile: python-bfabric-proteomics

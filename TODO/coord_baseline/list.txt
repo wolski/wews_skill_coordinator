@@ -1,0 +1,44 @@
+Sources:
+  wolski/wews_skill_coordinator          skills  [main 85bf1f2, 0 behind upstream]
+  fgcz/skills                            repos/fgcz-skills  [main 700db8c, 0 behind upstream]
+
+Installed skills:
+  add-molab-badge                               npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  agent-rules                                   npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  anywidget-generator                           npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  implement-paper                               npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  jupyter-to-marimo                             npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  marimo-batch                                  npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  marimo-notebook                               npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  skill-creator                                 npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  streamlit-to-marimo                           npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  uv                                            npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  wasm-compatibility                            npx    Antigravity, Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot, Zed
+  commit                                        npx    Claude Code
+  scientific-outreach                           npx    Claude Code
+  adding-models-to-prolfqua                     local  repos/fgcz-skills/proteomics-data-analysis/skills/adding-models-to-prolfqua
+  bfabric-connect                               local  repos/fgcz-skills/bfabric-lims/skills/bfabric-connect
+  bfabric-dataset                               local  repos/fgcz-skills/bfabric-lims/skills/bfabric-dataset
+  bfabric-query                                 local  repos/fgcz-skills/bfabric-lims/skills/bfabric-query
+  bfabric-tools                                 local  repos/fgcz-skills/bfabric-lims/skills/bfabric-tools
+  constructor-or-dataclass                      local  skills/software-engineering/skills/constructor-or-dataclass
+  design-principles                             local  skills/software-engineering/skills/design-principles
+  directed-folder-imports                       local  skills/software-engineering/skills/directed-folder-imports
+  fix-prolfqua-dea-app                          local  repos/fgcz-skills/proteomics-data-analysis/skills/fix-prolfqua-dea-app
+  fix-ptm-pipeline                              local  repos/fgcz-skills/proteomics-data-analysis/skills/fix-ptm-pipeline
+  interview-to-spec                             local  repos/fgcz-skills/communication/skills/interview-to-spec
+  marimo-background-jobs                        local  skills/marimo/skills/marimo-background-jobs
+  mixed-r-python-pipeline                       local  skills/workflow-development/skills/mixed-r-python-pipeline
+  phosphoproteomics-ptm-analysis                local  repos/fgcz-skills/proteomics-data-analysis/skills/phosphoproteomics-ptm-analysis
+  pixi-package-manager                          local  skills/workflow-development/skills/pixi-package-manager
+  plotly                                        local  skills/scientific-python/skills/plotly
+  polars-first                                  local  skills/software-engineering/skills/polars-first
+  polymorphism-over-discrimination              local  skills/software-engineering/skills/polymorphism-over-discrimination
+  prolfquapp-dea                                local  repos/fgcz-skills/proteomics-data-analysis/skills/prolfquapp-dea
+  run-ptm-pipeline                              local  repos/fgcz-skills/proteomics-data-analysis/skills/run-ptm-pipeline
+  scverse                                       local  skills/scientific-python/skills/scverse
+  shell-scripting                               local  skills/workflow-development/skills/shell-scripting
+  snakemake-compact                             local  skills/workflow-development/skills/snakemake-compact
+
+  configured active profile: python-bfabric-proteomics
+  installed profile match: python-bfabric-proteomics

@@ -21,10 +21,21 @@ path = "repos/fgcz-skills"
 git_url = "https://github.com/fgcz/skills.git"
 
 [sources.mailpull]
-repo = "wolski/mailpull"
-path = "../mailpull/skills"
+repo = "wolski/agentic-mail"
+path = "../agentic-mail/skills"
 owned = true
-git_url = "https://github.com/wolski/mailpull.git"
+git_url = "https://gitlab.bfabric.org/wolski/agentic-mail.git"
+
+[sources.agentic_zulip]
+repo = "wolski/agentic-zulip"
+path = "../agentic-zulip/skills"
+owned = true
+
+[sources.wew_skills]
+repo = "wolski/wew_skills"
+path = "../wew_skills/skills"
+owned = true
+git_url = "https://gitlab.bfabric.org/wolski/wew_skills.git"
 
 [sources.marimo]
 repo = "marimo-team/skills"
@@ -63,6 +74,8 @@ includes = [
     "meta",
     "communication",
     "mail",
+    "zulip",
+    "writing",
 ]
 
 [profiles.python]
@@ -224,6 +237,14 @@ wews = ["communication/scientific-outreach"]
 [profiles.mail]
 description = "Witold's local UZH/ETH mail mirror: search, read, send and delete."
 mailpull = ["email/mail"]
+
+[profiles.zulip]
+description = "Local Zulip mirror: search conversations and prepare approved drafts."
+agentic_zulip = ["zulip/zulip"]
+
+[profiles.writing]
+description = "Revising one's own manuscripts with coauthors and journals (private wew_skills)."
+wew_skills = ["writing/manuscript-revision"]
 
 [profiles.review]
 description = "Multi-perspective code review, finding verification, and software-manuscript review."

@@ -9,6 +9,17 @@ When these rules appear to conflict, resolve in this order:
 
 When the user directly instructs a change, do not ask for approval to make that change. If the change meets one of the planning criteria below, state that in one sentence and describe the approach before proceeding, rather than treating the instruction as an open question.
 
+# Privilege escalation and credentials
+
+- Before every invocation of `sudo`, on the local computer or any remote host including `fgcz-r-035` (SSH alias `35`), ask the user for explicit approval of the exact command and wait for their reply. This also applies to indirect invocation through a script, wrapper, subprocess or remote command. There are no host exceptions. Approval applies only to that command; unrestricted tool access or a general task authorization is not approval to use `sudo`.
+- Use only `wolski` credentials for SSH and B-Fabric; never SSH as `bfabric`, `root` or another account. Specify `ssh -l wolski` explicitly for remote work.
+
+# Pushing to repositories the user does not administer
+
+- Before every `git push` to a repository the user does not administer, ask for explicit approval and wait for the reply. Name the remote, the branch and the commits being pushed. This covers Bioconductor (`git.bioconductor.org`, `BiocStaging`), other organisations' and other people's repositories, and contributors' pull-request branches.
+- Approval of a plan or task that includes the push is not approval of the push. Ask again at the moment of pushing, after the change is final and checked.
+- If it is unclear whether the user administers a repository, ask before pushing.
+
 # User intent and instruction priority
 
 Within user-controlled instructions, the user's current request takes precedence over all accumulated context: project instructions, plans, TODO files, saved memories, earlier conversation context, prior research, existing code, existing text, previous designs, implementation choices, analyses, assumptions, and earlier lines of reasoning. All of these describe the current state or previous intent; they are not authority over what the user asks for now.
