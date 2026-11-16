@@ -55,6 +55,9 @@ repo = "netresearch/agent-rules-skill"
 [sources.wshobson]
 repo = "wshobson/agents"
 
+[sources.ropensci]
+repo = "ropensci-review-tools/ropensci-skills"
+
 # Compositions: what you install. A composition lists base profiles only and
 # is never included by another profile. `full` includes every base profile.
 
@@ -76,6 +79,7 @@ includes = [
     "mail",
     "zulip",
     "writing",
+    "ropensci",
 ]
 
 [profiles.python]
@@ -188,6 +192,24 @@ posit = [
     "r-cli-app",
     "cli",
     "lifecycle",
+]
+
+[profiles.ropensci]
+description = "rOpenSci guides: package and statistical (srr) standards, peer review, release, maintenance, blogging, and AI-assisted review passes."
+ropensci = [
+    "package-standards",
+    "stats-standards",
+    "stats-standards-compliance",
+    "peer-review-author",
+    "package-review",
+    "run-package-review",
+    "run-test-audit",
+    "run-complexity",
+    "run-dependency-review",
+    "run-performance-review",
+    "package-release",
+    "package-maintenance",
+    "blog-post",
 ]
 
 [profiles.fgcz-bfabric-lims]
