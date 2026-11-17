@@ -20,11 +20,11 @@ repo = "fgcz/skills"
 path = "repos/fgcz-skills"
 git_url = "https://github.com/fgcz/skills.git"
 
-[sources.mailpull]
-repo = "wolski/agentic-mail"
-path = "../agentic-mail/skills"
+[sources.agent_mail_access]
+repo = "wolski/agent-mail-access"
+path = "../agent-mail-access/skills"
 owned = true
-git_url = "https://gitlab.bfabric.org/wolski/agentic-mail.git"
+git_url = "https://gitlab.bfabric.org/wolski/agent-mail-access.git"
 
 [sources.agentic_zulip]
 repo = "wolski/agentic-zulip"
@@ -258,7 +258,7 @@ wews = ["communication/scientific-outreach"]
 
 [profiles.mail]
 description = "Witold's local UZH/ETH mail mirror: search, read, send and delete."
-mailpull = ["email/mail"]
+agent_mail_access = ["email/mail"]
 
 [profiles.zulip]
 description = "Local Zulip mirror: search conversations and prepare approved drafts."
