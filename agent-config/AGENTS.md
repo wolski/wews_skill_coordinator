@@ -70,6 +70,8 @@ Before implementation, write a plan and get user approval when a change:
 
 For localized changes with an obvious implementation, proceed directly.
 
+When asked for a plan for an existing `TODO_<name>.md`, save the plan next to it as `PLAN_<name>.md`: same folder and name, prefix `TODO_` replaced by `PLAN_`. In plan mode, where the harness assigns its own plan file, copy the plan to that `PLAN_` file as soon as plan mode ends.
+
 # Debugging and bug fixes
 
 Fix the root cause in the correct upstream package, layer, or file.
