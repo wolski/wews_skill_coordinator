@@ -58,6 +58,18 @@ repo = "wshobson/agents"
 [sources.ropensci]
 repo = "ropensci-review-tools/ropensci-skills"
 
+[sources.blader]
+repo = "blader/humanizer"
+
+[sources.statzhero]
+repo = "statzhero/tidy-r-skill"
+
+[sources.arthurgailes]
+repo = "arthurgailes/tidyverse-style"
+
+[sources.daaf]
+repo = "DAAF-Contribution-Community/daaf"
+
 # Compositions: what you install. A composition lists base profiles only and
 # is never included by another profile. `full` includes every base profile.
 
@@ -79,7 +91,10 @@ includes = [
     "mail",
     "zulip",
     "writing",
+    "humanizer",
     "ropensci",
+    "posit",
+    "tidy-r",
 ]
 
 [profiles.python]
@@ -188,10 +203,9 @@ wews = [
 ]
 posit = [
     "r-package-development",
-    "testing-r-packages",
     "r-cli-app",
-    "cli",
-    "lifecycle",
+    "r-cli",
+    "r-lifecycle",
 ]
 
 [profiles.ropensci]
@@ -210,6 +224,17 @@ ropensci = [
     "package-release",
     "package-maintenance",
     "blog-post",
+]
+
+[profiles.posit]
+description = "Posit review skills: critical code and PR review, test-quality review, writing testthat tests, CRAN extra checks and live CRAN status, tidyverse style."
+posit = [
+    "critical-code-reviewer",
+    "review-testing",
+    "r-testthat",
+    "r-cran-extrachecks",
+    "r-cran-status",
+    "r-tidyverse-style",
 ]
 
 [profiles.fgcz-bfabric-lims]
@@ -267,6 +292,16 @@ agentic_zulip = ["zulip/zulip"]
 [profiles.writing]
 description = "Revising one's own manuscripts with coauthors and journals (private wew_skills)."
 wew_skills = ["writing/manuscript-revision"]
+
+[profiles.humanizer]
+description = "Rewrite AI-sounding prose so it reads like the writer (blader/humanizer)."
+blader = ["humanizer"]
+
+[profiles.tidy-r]
+description = "Modern tidyverse R: dplyr/tidyselect idioms and migration (tidy-r), the tidyverse style guide (tidyverse-style), and ggplot2 (DAAF)."
+statzhero = ["tidy-r"]
+arthurgailes = ["tidyverse-style"]
+daaf = ["ggplot2"]
 
 [profiles.review]
 description = "Multi-perspective code review, finding verification, and software-manuscript review."
