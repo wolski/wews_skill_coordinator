@@ -36,7 +36,7 @@ Five bundles of review skills, suggested on 24 Nov for bringing prozor up to dat
 | B | Tests | `review-testing` (Posit); `run-test-audit` (rOpenSci) | Test quality and coverage gaps; for a package without tests, a test plan. Run before any refactoring |
 | C | Code and design | `critical-code-reviewer` (Posit); `run-complexity`, `run-dependency-review`, `run-performance-review` (rOpenSci) | Correctness, complexity, dependencies, hot paths |
 | D | Standards and style | `package-standards` (rOpenSci); `r-tidyverse-style` (Posit) | DESCRIPTION, README, docs, CI setup, style |
-| E | Tidy-skills review | `tidy-r`, `tidyverse-style`, `ggplot2` (profile `tidy-r`) | Modern tidyverse idioms (native pipe, `join_by()`, `.by`, tidyselect), tidyverse style guide, ggplot2 plots; overlaps D on style. Run on prolfqua and prolfquapp on 20 Nov |
+| E | Tidy-skills review | `tidy-r`, `tidyverse-style`, `ggplot2` (profile `tidy-r`) | Modern tidyverse idioms (native pipe, `join_by()`, `.by`, tidyselect), tidyverse style guide, ggplot2 plots. Run on prolfqua and prolfquapp on 20 Nov |
 
 Order: A → B → C → D → E, then a final round with `run-package-review` (including pkgcheck) to check the fixes and catch what the bundles missed, like prolfqua's round 2. A comes first because it is the fastest win and keeps the package on CRAN.
 
