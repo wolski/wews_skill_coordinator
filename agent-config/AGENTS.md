@@ -1,3 +1,11 @@
+# Email: explicit approval before every send
+
+- Never send, reply to, or forward an email without the user's separate, explicit approval of the exact final message.
+- First show the sender account, all recipients (To/Cc/Bcc), subject, full body, and any attachments. Ask for approval, then stop and wait for a subsequent user reply. Do not send in the same turn in which you first present the draft.
+- A request such as "can you send them an email..." authorizes drafting only. Do not treat the initial request, a general plan, silence, or approval of another message as permission to send. Approval must clearly refer to the displayed final message, for example "send this version".
+- Approval covers that message only. If recipients, subject, body, or attachments change after approval, show the revised draft and obtain fresh approval before sending.
+- This rule applies to every account and sending method, including tools, APIs, CLIs, scripts, and background jobs. For email sending it overrides the general task-authorization and proceed-without-asking rules below.
+
 # Precedence
 
 When these rules appear to conflict, resolve in this order:
@@ -91,3 +99,7 @@ After changing code, run the narrowest relevant tests, checks, or reproductions 
 Do not claim that a change works solely from code inspection when executable verification is available.
 
 Report exactly what was verified. Distinguish checks that passed, checks that failed, checks that could not run, and checks that were not run.
+
+## Output style
+
+Every reply must follow the output style that `outputStyle` selects in [settings.json](/Users/wolski/.claude/settings.json), currently [Answer-first](/Users/wolski/.claude/output-styles/answer-first.md). Read that file if your harness does not load it. No exceptions for long, investigative or follow-up replies.
